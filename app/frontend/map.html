@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>책 기반 장소 지도</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>📚 책과 연결된 장소 지도</h1>
+
+  <div class="search-box">
+    <input type="text" id="book-input" placeholder="책 제목을 입력하세요" />
+    <button id="searchBtn">검색</button>
+  </div>
+
+  <div id="map" style="width: 90%; height: 500px; margin: 20px auto;"></div>
+
+  <script async
+    src="https://maps.googleapis.com/maps/api/js?key=구글키&callback=initMap">
+  </script>
+  <script src="script.js"></script>
+</body>
+</html>
