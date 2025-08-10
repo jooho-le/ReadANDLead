@@ -28,7 +28,7 @@ react-frontend/.parcel-cache/
 react-frontend/dist/
 react-frontend/build/
 
-# ===== Environment / Secrets =====₩₩₩
+# ===== Environment / Secrets =====
 .env
 .env.*
 
