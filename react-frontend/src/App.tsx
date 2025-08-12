@@ -10,11 +10,15 @@ import TravelDiary from './pages/TravelDiary';
 import CulturalEvents from './pages/CulturalEvents';
 import GlobalStyle from './styles/GlobalStyle';
 
+// ⬇️ 추가 페이지
+import FourCutCreator from './pages/FourCutCreator';
+import LiteraryTripScrap from './pages/LiteraryTripScrap';
+
 const queryClient = new QueryClient();
 
 const AppContainer = styled.div`
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #f8fafc;
 `;
 
 const MainContent = styled.main`
@@ -36,6 +40,9 @@ function App() {
               <Route path="/map" element={<LocationMap />} />
               <Route path="/diary" element={<TravelDiary />} />
               <Route path="/events" element={<CulturalEvents />} />
+              {/* ⬇️ 새 라우트 */}
+              <Route path="/four-cut" element={<FourCutCreator />} />
+              <Route path="/literary-scrap" element={<LiteraryTripScrap />} />
             </Routes>
           </MainContent>
         </AppContainer>
