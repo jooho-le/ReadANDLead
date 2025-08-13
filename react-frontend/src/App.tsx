@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import styled from 'styled-components';
+import OAuthPopupCallback from './pages/OAuthPopupCallback';
 import Header from './components/Header';
 import Home from './pages/Home';
 import BookSearch from './pages/BookSearch';
@@ -36,6 +37,7 @@ function App() {
               <Route path="/map" element={<LocationMap />} />
               <Route path="/diary" element={<TravelDiary />} />
               <Route path="/events" element={<CulturalEvents />} />
+              <Route path="/auth/popup-callback" element={<OAuthPopupCallback />} />
             </Routes>
           </MainContent>
         </AppContainer>
