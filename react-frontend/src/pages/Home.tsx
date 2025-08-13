@@ -12,7 +12,7 @@ const HomeContainer = styled.div`
 const HeroSection = styled.section`
   text-align: center;
   padding: 80px 0;
-  color: white;
+  color: #764ba2;
 `;
 
 const HeroTitle = styled.h1`
