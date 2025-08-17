@@ -2,14 +2,24 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
-import { FaBook, FaSearch, FaMapMarkedAlt, FaBookOpen, FaCalendarAlt, FaSignInAlt } from 'react-icons/fa';
-import type { IconBaseProps } from 'react-icons';
-import { createPortal } from 'react-dom';
+
 
 const HeaderContainer = styled.header`
   position: fixed; top: 0; left: 0; right: 0;
   background: rgba(255,255,255,.95); backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255,255,255,.2);
+
+import { FaBook, FaSearch, FaMapMarkedAlt, FaBookOpen, FaCalendarAlt, FaImages, FaFolderOpen } from 'react-icons/fa';
+import { IconBaseProps } from 'react-icons';
+import type { IconBaseProps } from 'react-icons';
+import { createPortal } from 'react-dom';
+
+const HeaderContainer = styled.header`
+  position: fixed; top: 0; left: 0; right: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+
   z-index: 1000; padding: 0 20px;
 `;
 const Nav = styled.nav`
@@ -20,11 +30,7 @@ const Nav = styled.nav`
 const Left = styled.div` display:flex; align-items:center; gap:32px; `;
 const Logo = styled(Link)`
   font-size: 1.8rem; font-weight: 700;
-  background: linear-gradient(135deg,#667eea 0%,#764ba2 100%);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  display:flex; align-items:center; gap:8px;
-  &:hover { transform: scale(1.05); transition: .3s; }
-`;
+
 const NavMenu = styled.ul` display:flex; gap:32px; align-items:center; `;
 const NavItem = styled.li` position: relative; `;
 const NavLink = styled(Link)<{ $active: boolean }>`
@@ -50,6 +56,26 @@ const LogoutBtn = styled.button`
 const Backdrop = styled.div`
   position: fixed; inset: 0; background: rgba(0,0,0,.35);
   display:flex; align-items:center; justify-content:center; z-index:1100;
+
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; display: flex; align-items: center; gap: 8px;
+  &:hover { transform: scale(1.05); transition: transform 0.3s ease; }
+`;
+
+const NavMenu = styled.ul`
+  display: flex; gap: 8px; list-style: none; align-items: center;
+`;
+
+const NavItem = styled.li``;
+
+const NavLink = styled(Link)<{ $active: boolean }>`
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 16px; border-radius: 8px; font-weight: 600;
+  transition: all 0.3s ease;
+  color: ${p => p.$active ? '#667eea' : '#666'};
+  background: ${p => p.$active ? 'rgba(102,126,234,0.1)' : 'transparent'};
+  &:hover { color: #667eea; background: rgba(102,126,234,0.1); transform: translateY(-2px); }
 `;
 const Modal = styled.div`
   width:360px; background:#fff; border-radius:16px; box-shadow:0 20px 40px rgba(0,0,0,.12);
@@ -74,6 +100,7 @@ const Portal: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 export default function Header() {
   const location = useLocation();
+
   const [showModal, setShowModal] = useState(false);
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
 
@@ -134,17 +161,22 @@ export default function Header() {
     setToken(null);
   };
 
+
   const navItems = [
     { path: '/', label: '홈', icon: FaBook },
     { path: '/search', label: '도서 검색', icon: FaSearch },
     { path: '/map', label: '지도', icon: FaMapMarkedAlt },
     { path: '/diary', label: '여행일기', icon: FaBookOpen },
     { path: '/events', label: '문화행사', icon: FaCalendarAlt },
+    // ⬇️ 새 메뉴
+    { path: '/four-cut', label: '인생네컷', icon: FaImages },
+    { path: '/literary-scrap', label: '스크랩', icon: FaFolderOpen },
   ];
 
   return (
     <HeaderContainer>
       <Nav>
+
         <Left>
           <Logo to="/">{React.createElement(FaBook as React.ComponentType<IconBaseProps>)}Read & Lead</Logo>
           <NavMenu>
@@ -168,6 +200,22 @@ export default function Header() {
             <LogoutBtn onClick={handleLogout}>로그아웃</LogoutBtn>
           )}
         </AuthArea>
+
+        <Logo to="/">
+          {React.createElement(FaBook as React.ComponentType<IconBaseProps>)}
+          Read & Lead
+        </Logo>
+        <NavMenu>
+          {navItems.map((item) => (
+            <NavItem key={item.path}>
+              <NavLink to={item.path} $active={location.pathname === item.path}>
+                {React.createElement(item.icon as React.ComponentType<IconBaseProps>)}
+                {item.label}
+              </NavLink>
+            </NavItem>
+          ))}
+        </NavMenu>
+
       </Nav>
 
       {showModal && (
@@ -187,4 +235,8 @@ export default function Header() {
 
     </HeaderContainer>
   );
-}
+
+};
+
+export default Header;
+

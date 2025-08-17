@@ -1,3 +1,4 @@
+
 # ===== OS / IDE =====
 .DS_Store
 Thumbs.db
@@ -35,3 +36,6 @@ react-frontend/build/
 
 # ===== Misc =====
 *.local
+
+.env*
+
