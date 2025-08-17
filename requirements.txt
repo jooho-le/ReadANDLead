@@ -1,5 +1,11 @@
 fastapi
-uvicorn
-requests
+uvicorn[standard]
+authlib
+httpx
 python-dotenv
+python-jose
+passlib[bcrypt]
+python-multipart
+itsdangerous
 xmltodict
+
