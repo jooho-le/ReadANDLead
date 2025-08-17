@@ -3,8 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from starlette.middleware.sessions import SessionMiddleware
 import os
-from routes import books
-from routes import culture, kopis, library
+from .routes import books
+from app.routes import culture, kopis, library
 from .routes import auth
 
 
@@ -28,7 +28,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
-=======
+
 # 기존
 app.include_router(books.router)
 

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Query
 from typing import Optional
-from services.culture_api import search_events_nearby
+from ..services.culture_api import search_events_nearby
 from datetime import datetime, timedelta
 
 router = APIRouter()

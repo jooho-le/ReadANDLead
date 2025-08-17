@@ -49,10 +49,12 @@ const Left = styled.div`
 
 const Logo = styled(Link)`
   display: inline-flex;
+  flex-direction: row;
   align-items: center;
   gap: 8px;
   font-size: 1.8rem;
   font-weight: 700;
+  white-space: nowrap;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -70,6 +72,7 @@ const NavMenu = styled.ul`
   align-items: center;
   margin: 0;
   padding: 0;
+  flex-wrap: nowrap;
 `;
 
 const NavItem = styled.li`
@@ -77,13 +80,15 @@ const NavItem = styled.li`
 `;
 
 const NavLink = styled(Link)<{ $active: boolean }>`
-  display: flex;
+  display: inline-flex;
+  flex-direction: row; 
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
   border-radius: 8px;
   font-weight: 600;
   transition: all 0.3s ease;
+  white-space: nowrap;
   color: ${(p) => (p.$active ? '#667eea' : '#666')};
   background: ${(p) =>
     p.$active ? 'rgba(102,126,234,0.1)' : 'transparent'};
@@ -98,13 +103,16 @@ const AuthArea = styled.div`
   display: flex;
   gap: 8px;
   align-items: center;
+  margin-left: 40px;
 `;
 
 const LoginBtn = styled.button`
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   padding: 10px 14px;
+  white-space: nowrap; 
   border-radius: 10px;
   cursor: pointer;
   border: 1px solid #e5e7ff;
@@ -117,8 +125,12 @@ const LoginBtn = styled.button`
 `;
 
 const LogoutBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 10px 14px;
   border-radius: 10px;
+  white-space: nowrap; 
   cursor: pointer;
   font-weight: 700;
   color: #fff;
