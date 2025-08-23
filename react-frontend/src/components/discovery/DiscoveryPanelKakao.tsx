@@ -212,6 +212,71 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
     })();
   }, []);
 
+  // 여행 일정 담기 모달 상태
+const [addOpen, setAddOpen] = useState(false);
+const [addTarget, setAddTarget] = useState<{
+  extId: string;            // kakao place id
+  name: string;
+  addr?: string;
+  loc?: LatLng;
+} | null>(null);
+const [tripId, setTripId] = useState<string>("");
+const [tripList, setTripList] = useState<Array<{id:string; title:string}>>([]);
+const [addDate, setAddDate] = useState<string>("");   // yyyy-mm-dd
+const [addTime, setAddTime] = useState<string>("");   // HH:mm
+
+// 모달이 열릴 때 내 여행 목록 불러오기 (API는 프로젝트에 맞춰 경로만 조정)
+useEffect(() => {
+  if (!addOpen) return;
+  (async () => {
+    try {
+      const r = await fetch("/api/trips?mine=1").then(res => res.json());
+      setTripList(r || []);
+      if ((r || []).length) setTripId(r[0].id);
+    } catch (e) { console.error("trips fetch error", e); }
+  })();
+  }, [addOpen]);
+
+// 내부 placeId 확보(없으면 upsert) — 프로젝트 API 경로에 맞춰 바꾸세요
+async function ensureInternalPlaceId(t: { extId:string; name:string; addr?:string; loc?:LatLng }) {
+  const body = {
+    source: "kakao",
+    externalId: t.extId,
+    name: t.name,
+    lat: t.loc?.lat, lng: t.loc?.lng,
+    address: t.addr
+  };
+  const p = await fetch("/api/places/upsert", {
+    method: "POST", headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(body)
+  }).then(r=>r.json());
+  return p.id as string; // 내부 placeId
+}
+
+// 담기 저장
+async function saveAddToTrip() {
+  if (!addTarget || !tripId) return;
+  try {
+    const placeId = await ensureInternalPlaceId(addTarget);
+    const payload:any = { placeId };
+    if (addDate) payload.date = addDate;
+    if (addTime) payload.startTime = addTime;
+
+    await fetch(`/api/trips/${tripId}/stops`, {
+      method:"POST", headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    setAddOpen(false);
+    // 필요시 리스트/메트릭 리프레시(프로젝트에서 SWR/React Query 사용 시)
+    // mutate(`/api/trips/${tripId}`);
+    // mutate(`/api/me/metrics`);
+  } catch (e) {
+    console.error("add to trip failed", e);
+    setDialog({ open:true, title:"오류", msg:"일정에 추가하지 못했어요." });
+  }
+}
+
   /* ---------- 공통 ---------- */
   function showEmptyDialog(kind: NonNullable<typeof active>) {
     const name =
@@ -649,11 +714,11 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
               return (
                 <Row key={p.id} clickable onClick={() => onRowClick(p)}>
                   <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      gap: 8,
-                    }}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        gap: 8,
+                      }}
                   >
                     <div>
                       <Name>{p.name}</Name>
@@ -670,26 +735,42 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
                           Google
                         </A>
                         {p.phone && (
-                          <A href={`tel:${p.phone.replace(/\s+/g, '')}`}>전화</A>
+                            <A href={`tel:${p.phone.replace(/\s+/g, '')}`}>전화</A>
                         )}
                         {p.url && (
-                          <A href={p.url} target="_blank" rel="noreferrer">
-                            지도페이지
-                          </A>
+                            <A href={p.url} target="_blank" rel="noreferrer">
+                              지도페이지
+                            </A>
                         )}
                       </Actions>
                     </div>
-                    <SmallBtn
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openPlannerFor(p);
-                      }}
-                    >
-                      길찾기
-                    </SmallBtn>
+                    <div style={{display: 'flex', gap: 8 /* marginLeft: 'auto' 제거! */}}>
+                      <SmallBtn
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAddTarget({
+                              extId: p.id,
+                              name: p.name,
+                              addr: p.addr,
+                              loc: p.loc
+                            });
+                            setAddOpen(true);
+                          }}
+                      >
+                        일정에 추가
+                      </SmallBtn>
+                      <SmallBtn
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openPlannerFor(p);
+                          }}
+                      >
+                        길찾기
+                      </SmallBtn>
+                    </div>
                   </div>
                 </Row>
-              );
+            );
             } else {
               const e = r as EventItem;
               const key = `${e.title}-${e.venue || ''}-${i}`;
@@ -698,8 +779,8 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
                   <div
                     style={{
                       display: 'flex',
-                      justifyContent: 'space-between',
                       gap: 8,
+                      alignItems:'flex-start'
                     }}
                   >
                     <div>
@@ -732,6 +813,7 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
                         </A>
                       </Actions>
                     </div>
+
                     <SmallBtn
                       onClick={(ev) => {
                         ev.stopPropagation();
@@ -923,6 +1005,47 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
           </DetailSheet>
         </DetailBackdrop>
       )}
+
+      {/* 여행 일정에 추가하기 모달 */}
+{addOpen && addTarget && (
+  <DetailBackdrop onClick={() => setAddOpen(false)}>
+    <DetailSheet onClick={(e) => e.stopPropagation()} style={{maxWidth: 520}}>
+      <h3 style={{marginTop:0}}>여행 일정에 추가하기</h3>
+
+      <div style={{margin:"8px 0 12px"}}>
+        <div style={{fontWeight:700}}>{addTarget.name}</div>
+        {addTarget.addr && <div style={{color:"#555"}}>{addTarget.addr}</div>}
+      </div>
+
+      <div style={{display:"grid", gap:10}}>
+        <label style={{display:"grid", gap:6}}>
+          <span className="text-sm">여행 선택</span>
+          <Select value={tripId} onChange={e=>setTripId(e.target.value)}>
+            {tripList.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
+          </Select>
+        </label>
+
+        <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10}}>
+          <label style={{display:"grid", gap:6}}>
+            <span className="text-sm">날짜(선택)</span>
+            <Input type="date" value={addDate} onChange={e=>setAddDate(e.target.value)} />
+          </label>
+          <label style={{display:"grid", gap:6}}>
+            <span className="text-sm">시간(선택)</span>
+            <Input type="time" value={addTime} onChange={e=>setAddTime(e.target.value)} />
+          </label>
+        </div>
+      </div>
+
+      <div style={{display:"flex", gap:8, justifyContent:"flex-end", marginTop:12}}>
+        <Btn onClick={()=>setAddOpen(false)}>취소</Btn>
+        <BtnPrimary onClick={saveAddToTrip}>추가하기</BtnPrimary>
+      </div>
+    </DetailSheet>
+  </DetailBackdrop>
+)}
+
     </Panel>
   );
 }
+
