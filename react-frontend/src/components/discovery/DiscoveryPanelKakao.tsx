@@ -10,6 +10,9 @@ import { fetchKopisPerformances } from '../../api/kopis';
 import { fetchCultureNearby } from '../../api/culture';
 import { useKakaoMarkers } from './useKakaoMarkers';
 import AutocompleteInput, { Suggestion } from '../common/AutocompleteInput';
+import { createTrip as apiCreateTrip, upsertPlace, addStop as apiAddStop } from "../../api/trips";
+import { apiFetch } from "../../api/config";
+
 
 // (선택) 상세 패널 사진/주소 보강용 — .env에 REACT_APP_GOOGLE_MAPS_KEY 없으면 알아서 무시됨
 import {
@@ -23,10 +26,10 @@ import {
 const Panel = styled.div`margin-top:12px;border-top:1px solid #eee;padding-top:10px;`;
 
 const ChipRow = styled.div`display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;`;
-const Chip = styled.button<{active?:boolean}>`
-  border:1px solid ${p=>p.active?'#000':'#ddd'};
+const Chip = styled.button<{$active?: boolean}>`
+  border:1px solid ${p=>p.$active ? '#000' : '#ddd'};
   background:#fff;padding:8px 12px;border-radius:999px;cursor:pointer;
-  font-weight:${p=>p.active?700:500};
+  font-weight:${p=>p.$active?700:500};
 `;
 
 const TopBar = styled.div`display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:8px 0 12px;`;
@@ -37,10 +40,9 @@ const Range = styled.input.attrs({type:'range'})`width:160px;`;
 const Muted = styled.span`color:#999;font-size:.9rem;`;
 
 const ResultList = styled.div`max-height:360px;overflow:auto;border:1px solid #f5f5f5;border-radius:8px;padding:8px 12px;`;
-const Row = styled.div<{clickable?:boolean}>`
-  padding:10px 0;border-bottom:1px solid #f3f3f3;
-  ${p=>p.clickable?'cursor:pointer;':''}
-  &:last-child{border-bottom:none;}
+const Row = styled.div<{$clickable?:boolean}>`
+  padding:10px 0; border-bottom:1px solid #f3f3f3;
+  ${p => p.$clickable ? 'cursor:pointer;' : ''}
 `;
 const Name = styled.div`font-weight:700;`;
 const Sub = styled.div`color:#555;font-size:.9rem;`;
@@ -225,55 +227,73 @@ const [tripList, setTripList] = useState<Array<{id:string; title:string}>>([]);
 const [addDate, setAddDate] = useState<string>("");   // yyyy-mm-dd
 const [addTime, setAddTime] = useState<string>("");   // HH:mm
 
+async function fetchMyTrips() {
+  return apiFetch("/trips?mine=1");
+}
+
+
 // 모달이 열릴 때 내 여행 목록 불러오기 (API는 프로젝트에 맞춰 경로만 조정)
 useEffect(() => {
   if (!addOpen) return;
   (async () => {
     try {
-      const r = await fetch("/api/trips?mine=1").then(res => res.json());
+      const r = await fetchMyTrips();
       setTripList(r || []);
       if ((r || []).length) setTripId(r[0].id);
-    } catch (e) { console.error("trips fetch error", e); }
+    } catch (e) {
+      console.error("trips fetch error", e);
+    }
   })();
-  }, [addOpen]);
+}, [addOpen]);
+
 
 // 내부 placeId 확보(없으면 upsert) — 프로젝트 API 경로에 맞춰 바꾸세요
 async function ensureInternalPlaceId(t: { extId:string; name:string; addr?:string; loc?:LatLng }) {
-  const body = {
+  const p = await upsertPlace({
     source: "kakao",
     externalId: t.extId,
     name: t.name,
-    lat: t.loc?.lat, lng: t.loc?.lng,
-    address: t.addr
-  };
-  const p = await fetch("/api/places/upsert", {
-    method: "POST", headers: {"Content-Type":"application/json"},
-    body: JSON.stringify(body)
-  }).then(r=>r.json());
-  return p.id as string; // 내부 placeId
+    lat: t.loc?.lat,
+    lng: t.loc?.lng,
+    address: t.addr,
+  });
+  return p.id as string;
 }
-
 // 담기 저장
 async function saveAddToTrip() {
   if (!addTarget || !tripId) return;
   try {
     const placeId = await ensureInternalPlaceId(addTarget);
-    const payload:any = { placeId };
-    if (addDate) payload.date = addDate;
-    if (addTime) payload.startTime = addTime;
-
-    await fetch(`/api/trips/${tripId}/stops`, {
-      method:"POST", headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify(payload)
+    await apiAddStop(tripId, {
+      placeId,
+      date: addDate || undefined,
+      startTime: addTime || undefined,
     });
-
     setAddOpen(false);
-    // 필요시 리스트/메트릭 리프레시(프로젝트에서 SWR/React Query 사용 시)
-    // mutate(`/api/trips/${tripId}`);
-    // mutate(`/api/me/metrics`);
   } catch (e) {
     console.error("add to trip failed", e);
     setDialog({ open:true, title:"오류", msg:"일정에 추가하지 못했어요." });
+  }
+}
+
+const [newTripOpen, setNewTripOpen] = useState(false);
+const [newTitle, setNewTitle] = useState("");
+const [newStart, setNewStart] = useState("");
+const [newEnd, setNewEnd] = useState("");
+
+async function createTrip() {
+  try {
+    const t = await apiCreateTrip({
+      title: newTitle,
+      startDate: newStart || null,
+      endDate: newEnd || null,
+    });
+    setTripList([t, ...tripList]);
+    setTripId(t.id);
+    setNewTripOpen(false);
+  } catch (e) {
+    console.error("createTrip failed", e);
+    setDialog({ open:true, title:"오류", msg:"여행을 만들지 못했어요." });
   }
 }
 
@@ -634,24 +654,24 @@ async function saveAddToTrip() {
       {/* 카테고리 버튼 */}
       <ChipRow>
         <Chip
-          active={active === 'performance'}
+          $active={active === 'performance'}
           onClick={() => onClick('performance')}
         >
           공연(KOPIS)
         </Chip>
         <Chip
-          active={active === 'exhibition'}
+          $active={active === 'exhibition'}
           onClick={() => onClick('exhibition')}
         >
           전시(문화포털)
         </Chip>
-        <Chip active={active === 'museum'} onClick={() => onClick('museum')}>
+        <Chip $active={active === 'museum'} onClick={() => onClick('museum')}>
           박물관
         </Chip>
-        <Chip active={active === 'cafe'} onClick={() => onClick('cafe')}>
+        <Chip $active={active === 'cafe'} onClick={() => onClick('cafe')}>
           카페
         </Chip>
-        <Chip active={active === 'hot'} onClick={() => onClick('hot')}>
+        <Chip $active={active === 'hot'} onClick={() => onClick('hot')}>
           핫플
         </Chip>
       </ChipRow>
@@ -712,7 +732,7 @@ async function saveAddToTrip() {
             if (r.kind === 'place') {
               const p = r as PlaceItem;
               return (
-                <Row key={p.id} clickable onClick={() => onRowClick(p)}>
+                <Row key={p.id} $clickable onClick={() => onRowClick(p)}>
                   <div
                       style={{
                         display: 'flex',
@@ -775,7 +795,7 @@ async function saveAddToTrip() {
               const e = r as EventItem;
               const key = `${e.title}-${e.venue || ''}-${i}`;
               return (
-                <Row key={key} clickable onClick={() => onRowClick(e)}>
+                <Row key={key} $clickable onClick={() => onRowClick(e)}>
                   <div
                     style={{
                       display: 'flex',
@@ -1017,29 +1037,67 @@ async function saveAddToTrip() {
         {addTarget.addr && <div style={{color:"#555"}}>{addTarget.addr}</div>}
       </div>
 
-      <div style={{display:"grid", gap:10}}>
-        <label style={{display:"grid", gap:6}}>
+      <div style={{display: "grid", gap: 10}}>
+        <label style={{display: "grid", gap: 6}}>
           <span className="text-sm">여행 선택</span>
-          <Select value={tripId} onChange={e=>setTripId(e.target.value)}>
-            {tripList.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
-          </Select>
+          <div style={{display: "flex", gap: 8}}>
+            <Select
+                value={tripId}
+                onChange={(e) => setTripId(e.target.value)}
+            >
+              <option value="" disabled>여행을 선택하세요</option>
+              {tripList.map(t => (
+                  <option key={t.id} value={t.id}>{t.title}</option>
+              ))}
+            </Select>
+            <SmallBtn onClick={() => setNewTripOpen(true)}>+ 새 여행</SmallBtn>
+          </div>
         </label>
 
-        <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10}}>
-          <label style={{display:"grid", gap:6}}>
+
+        <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10}}>
+          <label style={{display: "grid", gap: 6}}>
             <span className="text-sm">날짜(선택)</span>
-            <Input type="date" value={addDate} onChange={e=>setAddDate(e.target.value)} />
+            <Input type="date" value={addDate} onChange={e => setAddDate(e.target.value)}/>
           </label>
-          <label style={{display:"grid", gap:6}}>
+          <label style={{display: "grid", gap: 6}}>
             <span className="text-sm">시간(선택)</span>
-            <Input type="time" value={addTime} onChange={e=>setAddTime(e.target.value)} />
+            <Input type="time" value={addTime} onChange={e => setAddTime(e.target.value)}/>
           </label>
         </div>
       </div>
 
-      <div style={{display:"flex", gap:8, justifyContent:"flex-end", marginTop:12}}>
-        <Btn onClick={()=>setAddOpen(false)}>취소</Btn>
+      <div style={{display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 12}}>
+        <Btn onClick={() => setAddOpen(false)}>취소</Btn>
         <BtnPrimary onClick={saveAddToTrip}>추가하기</BtnPrimary>
+      </div>
+    </DetailSheet>
+  </DetailBackdrop>
+)}
+
+      {newTripOpen && (
+  <DetailBackdrop onClick={() => setNewTripOpen(false)}>
+    <DetailSheet onClick={(e)=>e.stopPropagation()} style={{ maxWidth: 480 }}>
+      <h3 style={{ marginTop: 0 }}>새 여행 만들기</h3>
+      <div style={{ display:"grid", gap:10 }}>
+        <label style={{ display:"grid", gap:6 }}>
+          <span className="text-sm">제목</span>
+          <Input value={newTitle} onChange={e=>setNewTitle(e.target.value)} placeholder="예: 제주 2박3일" />
+        </label>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+          <label style={{ display:"grid", gap:6 }}>
+            <span className="text-sm">시작일(선택)</span>
+            <Input type="date" value={newStart} onChange={e=>setNewStart(e.target.value)} />
+          </label>
+          <label style={{ display:"grid", gap:6 }}>
+            <span className="text-sm">종료일(선택)</span>
+            <Input type="date" value={newEnd} onChange={e=>setNewEnd(e.target.value)} />
+          </label>
+        </div>
+      </div>
+      <div style={{ display:"flex", gap:8, justifyContent:"flex-end", marginTop:12 }}>
+        <Btn onClick={()=>setNewTripOpen(false)}>취소</Btn>
+        <BtnPrimary onClick={createTrip} disabled={!newTitle.trim()}>만들기</BtnPrimary>
       </div>
     </DetailSheet>
   </DetailBackdrop>
@@ -1047,5 +1105,6 @@ async function saveAddToTrip() {
 
     </Panel>
   );
+
 }
 

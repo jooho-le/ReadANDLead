@@ -54,6 +54,8 @@
     "svgo": "^2.8.0",
     "nth-check": "^2.0.1",
     "css-select": "^5.1.0"
+  },
+  "devDependencies": {
+    "cross-env": "^10.0.0"
   }
 }
-
