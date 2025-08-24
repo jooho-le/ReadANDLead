@@ -1,5 +1,6 @@
 // CRA(react-scripts) 전용: import.meta 사용하지 말고 process.env만 사용
-const API_BASE = process.env.REACT_APP_API_BASE || '';
+const API_BASE = (process.env.REACT_APP_API_BASE ?? 'http://127.0.0.1:8000')
+  .replace(/\/+$/, ''); // 끝 슬래시 제거
 
 export default API_BASE;
 
@@ -8,16 +9,17 @@ export default API_BASE;
 
 // path 앞에 /가 없으면 자동으로 붙여주고,
 // JSON 헤더/쿠키도 기본으로 넣습니다.
+
 export async function apiFetch(path: string, init?: RequestInit) {
-  const url = `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+  const url = `${API_BASE}${path.startsWith('/') ? '' : '/'}${path}`;
+  console.log('[apiFetch] ->', url); // 실제 요청 URL 확인
   const res = await fetch(url, {
-    credentials: "include",                         // 세션/쿠키 쓰면 유지
-    headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
+    headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
     ...init,
   });
-  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
-
-  // JSON 응답만 JSON으로 파싱
-  const ct = res.headers.get("content-type") || "";
-  return ct.includes("application/json") ? res.json() : res.text();
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`${res.status} ${body || res.statusText}`);
+  }
+  return res.json();
 }

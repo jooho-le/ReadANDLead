@@ -6,6 +6,7 @@ from starlette.middleware.sessions import SessionMiddleware
 import os
 from .routes import books
 from app.routes import culture, kopis, library
+from app.routes.diary import router as diary_router
 from .routes import auth
 from uuid import uuid4
 
@@ -43,6 +44,7 @@ app.include_router(books.router)
 app.include_router(culture.router, prefix="/culture", tags=["culture"])
 app.include_router(kopis.router, prefix="/kopis", tags=["kopis"])
 app.include_router(library.router, prefix="/library", tags=["library"])
+app.include_router(diary_router)
 
 TRIPS: List[Dict] = []
 PLACES: Dict[str, Dict] = {}

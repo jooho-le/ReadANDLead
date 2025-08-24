@@ -1,17 +1,19 @@
+// src/App.tsx
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import styled from 'styled-components';
-import OAuthPopupCallback from './pages/OAuthPopupCallback';
+
+import GlobalStyle from './styles/GlobalStyle';
 import Header from './components/Header';
+
+// pages
 import Home from './pages/Home';
 import BookSearch from './pages/BookSearch';
 import LocationMap from './pages/LocationMap';
 import TravelDiary from './pages/TravelDiary';
-import CulturalEvents from './pages/CulturalEvents';
-import GlobalStyle from './styles/GlobalStyle';
-
-// ⬇️ 추가 페이지
+import OAuthPopupCallback from './pages/OAuthPopupCallback';
+import DiaryTripPage from './pages/trips/TripPage';             // /trips/:id
 import FourCutCreator from './pages/FourCutCreator';
 import LiteraryTripScrap from './pages/LiteraryTripScrap';
 
@@ -36,15 +38,23 @@ function App() {
           <Header />
           <MainContent>
             <Routes>
+              {/* 기본 라우트들 */}
               <Route path="/" element={<Home />} />
               <Route path="/search" element={<BookSearch />} />
               <Route path="/map" element={<LocationMap />} />
-              <Route path="/diary" element={<TravelDiary />} />
+              <Route path="/diary" element={<TravelDiary />} /> // 여행일기
               <Route path="/auth/popup-callback" element={<OAuthPopupCallback />} />
-              
-              {/* ⬇️ 새 라우트 */}
+
+              {/* 새 기능 */}
               <Route path="/four-cut" element={<FourCutCreator />} />
               <Route path="/literary-scrap" element={<LiteraryTripScrap />} />
+
+              {/* 여행 계획 */}
+              <Route path="/diary/trip/:id" element={<DiaryTripPage />} />
+
+
+              {/* 나머지 → 홈으로 */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </MainContent>
         </AppContainer>
