@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Query
 from typing import Optional
-from services.library_api import get_librarian_picks
+from ..services.library_api import get_librarian_picks
 from datetime import datetime
 
 router = APIRouter()

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Query
 from typing import Optional
-from services.kopis_api import search_performances
+from ..services.kopis_api import search_performances
 from datetime import datetime, timedelta
 
 router = APIRouter()
