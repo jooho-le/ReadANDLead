@@ -54,4 +54,4 @@ export const addStop = (tripId: string, payload: {
   });
 
 export const listStops = (tripId: string) =>
-  apiFetch(`/api/trips/${tripId}/stops`) as Promise<Stop[]>;
+  apiFetch(`/api/trips/${tripId}/stops`);
