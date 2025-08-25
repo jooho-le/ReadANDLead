@@ -1,4 +1,4 @@
-// src/pages/TravelDiary.tsx
+// src/pages/TravelDiary.tsx : 여행일기 탭 페이지
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { FaTrophy, FaMapMarkedAlt, FaRoute, FaCheckCircle, FaShareAlt } from 'react-icons/fa';

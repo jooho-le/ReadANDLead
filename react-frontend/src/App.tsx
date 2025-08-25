@@ -13,7 +13,7 @@ import BookSearch from './pages/BookSearch';
 import LocationMap from './pages/LocationMap';
 import TravelDiary from './pages/TravelDiary';
 import OAuthPopupCallback from './pages/OAuthPopupCallback';
-import DiaryTripPage from './pages/trips/TripPage';             // /trips/:id
+import DiaryTripLayout, { PlanPanel, JournalPanel, ItineraryPanel } from './pages/DiaryTripPage';
 import FourCutCreator from './pages/FourCutCreator';
 import LiteraryTripScrap from './pages/LiteraryTripScrap';
 
@@ -50,8 +50,13 @@ function App() {
               <Route path="/literary-scrap" element={<LiteraryTripScrap />} />
 
               {/* 여행 계획 */}
-              <Route path="/diary/trip/:id" element={<DiaryTripPage />} />
-
+              {/* /diary/trip/:id 하위 탭 */}
+              <Route path="/diary/trip/:id" element={<DiaryTripLayout />}>
+                <Route index element={<Navigate to="plan" replace />} />
+                <Route path="plan" element={<PlanPanel />} />
+                <Route path="itinerary" element={<ItineraryPanel />} />
+                <Route path="journal" element={<JournalPanel />} />
+              </Route>
 
               {/* 나머지 → 홈으로 */}
               <Route path="*" element={<Navigate to="/" replace />} />

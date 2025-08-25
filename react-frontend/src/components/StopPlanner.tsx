@@ -1,8 +1,8 @@
+// 일정 계획 세우는 부분
 import { useState } from 'react';
-import { upsertPlace, addStop } from '../api/trips';
+import { upsertPlace, addStop, type Source } from '../api/trips';
 import { Card, SectionTitle, Row, Col, Select, Input, Button, Help, Label } from './ui';
 
-type Source = 'kakao' | 'google';
 
 export function StopPlanner({ tripId, onAdded }: { tripId: string; onAdded?: () => void }) {
   const [source, setSource] = useState<Source>('kakao');
@@ -34,6 +34,7 @@ export function StopPlanner({ tripId, onAdded }: { tripId: string; onAdded?: () 
           <Select value={source} onChange={e=>setSource(e.target.value as Source)} style={{maxWidth:120}}>
             <option value="kakao">Kakao</option>
             <option value="google">Google</option>
+            <option value="naver">Naver</option>
           </Select>
           <Input placeholder="Place externalId (예: Kakao place_id)" value={externalId} onChange={e=>setExternalId(e.target.value)} />
         </Row>
