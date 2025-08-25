@@ -2,25 +2,20 @@
 
 import styled from 'styled-components';
 import type { DiaryEntry } from '../../api/diary';
-import { Card } from '../ui';
+import StopChip from './StopChip';
 
-const Meta = styled.div`
-  font-size: 12px;
-  color: #9ca3af;
-  margin-bottom: 6px;
-`;
-const Text = styled.div<{system?: boolean}>`
-  font-size: 14px;
-  color: ${({system}) => system ? '#475569' : '#111827'};
-`;
-
-export function DiaryEntryCard({ e }: { e: DiaryEntry }) {
-  const when = new Date(e.created_at).toLocaleString();
-  const isSystem = e.entry_type === 'system';
+export function DiaryEntryCard({ e, placeName }: { e: DiaryEntry; placeName?: string }) {
   return (
-    <Card>
-      <Meta>{when}</Meta>
-      <Text system={isSystem}>{isSystem ? `🔔 ${e.text}` : e.text}</Text>
-    </Card>
+    <div className="rounded-2xl border p-3 space-y-6">
+      <div className="flex items-center justify-between text-xs text-gray-500">
+        <span>{new Date(e.happened_at || e.created_at).toLocaleString()}</span>
+        {e.stop_id && placeName && <StopChip stopId={e.stop_id} label={placeName} />}
+      </div>
+      <div className="text-sm">
+        {e.entry_type === 'system'
+          ? <span className="text-gray-600">🔔 {e.text}</span>
+          : <span>{e.text}</span>}
+      </div>
+    </div>
   );
 }
