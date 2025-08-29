@@ -1,0 +1,41 @@
+
+# ===== OS / IDE =====
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# ===== Python (FastAPI) =====
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+
+# Uvicorn/Logs
+*.log
+
+# ===== Node/React =====
+react-frontend/node_modules/
+react-frontend/.eslintcache
+react-frontend/.parcel-cache/
+react-frontend/dist/
+react-frontend/build/
+
+# ===== Environment / Secrets =====
+.env
+.env.*
+
+
+# ===== Misc =====
+*.local
+
+.env*
+
