@@ -34,8 +34,87 @@ react-frontend/build/
 .env.*
 
 
+
 # ===== Misc =====
 *.local
 
 .env*
 
+# macOS / IDE
+.DS_Store
+.idea/
+.vscode/
+
+# Frontend
+react-frontend/node_modules/
+react-frontend/build/
+react-frontend/.env
+react-frontend/.env.local
+react-frontend/.env.*.local
+
+# Backend (server)
+server/venv/
+server/.venv/
+server/__pycache__/
+server/.env
+server/.env.local
+server/.env.*.local
+server/*.sqlite3
+server/app.db
+server/instance/
+server/uploads/
+
+# Logs
+*.log
+npm-debug.log*
+
+# macOS
+.DS_Store
+
+# --- React / Node (frontend)
+react-frontend/node_modules/
+react-frontend/build/
+react-frontend/.env
+react-frontend/.env.local
+react-frontend/.env.*.local
+react-frontend/npm-debug.log*
+react-frontend/yarn-error.log*
+
+# --- Python / FastAPI (server)
+# venv들
+.venv/
+venv/
+server/.venv/
+server/venv/
+
+# py 캐시/바이트코드
+__pycache__/
+**/__pycache__/
+*.py[cod]
+
+# 환경변수(비밀값)
+.env
+server/.env
+
+# 로그
+*.log
+server/*.log
+
+# --- DB (SQLite 등)
+# (JWT/회원 데이터 들어있으므로 반드시 제외)
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+*.db-journal
+app.db*
+server/app.db*
+
+# --- 업로드/미디어(사용자 이미지 등)
+server/uploads/**
+!server/uploads/.gitkeep
+
+# --- IDE/툴
+.vscode/
+.idea/

@@ -1,41 +1,75 @@
 // src/api/config.ts
+// 공통 설정 + fetch 래퍼 + 엔드포인트 모음
 
-// CRA(.env) 기준 API 베이스 URL (예: http://127.0.0.1:8000)
-// 비워두면 프록시(/api)만으로도 동작 가능
-export const API_BASE_URL = (process.env.REACT_APP_API_BASE_URL || '').replace(/\/+$/, '');
+// 환경변수 → Vite/CRA 둘 다 케어, 기본은 127.0.0.1:8000
+export const API_BASE_URL: string =
+  (typeof import.meta !== "undefined" && (import.meta as any)?.env?.VITE_API_URL) ||
+  (typeof process !== "undefined" && (process.env as any)?.REACT_APP_API_URL) ||
+  "http://127.0.0.1:8000";
 
-// 레거시 호환을 위해 default export 유지
-const API_BASE = API_BASE_URL;
-export default API_BASE;
+// 상대경로/절대경로 모두 지원
+export function apiUrl(path: string): string {
+  if (!path) return API_BASE_URL;
+  if (/^https?:\/\//i.test(path)) return path;
+  const base = API_BASE_URL.replace(/\/+$/, "");
+  const p = path.startsWith("/") ? path : `/${path}`;
+  return `${base}${p}`;
+}
 
-// 프론트에서 쓰는 모든 엔드포인트를 한 곳에서 정의
+// 공용 엔드포인트(타입오류 방지용으로 다 넣어둠)
 export const ENDPOINTS = {
-  // 통계/카운트
-  stats:        `${API_BASE}/api/stats`,
-  booksCount:   `${API_BASE}/api/books/count`,
-  placesCount:  `${API_BASE}/api/places/count`,
-  eventsCount:  `${API_BASE}/api/events/count`,
-  usersCount:   `${API_BASE}/api/users/count`,
+  // 이웃 글
+  neighborPosts: "/api/neighbor-posts",
 
-  // 문화포털/공연 (프록시)
-  cultureNearby: `${API_BASE}/api/culture/nearby`,
-  kopisPerform:  `${API_BASE}/api/kopis/performances`,
+  // 기존 다른 기능들이 참조하던 것들(서버가 없어도 타입 오류는 안 나게)
+  cultureNearby: "/api/culture/nearby",
+  kopisPerform: "/api/kopis/perform",
+  routeDriving: "/api/route/driving",
+  usersCount: "/api/users/count",
+} as const;
 
-  // 여행/일기
-  trips:         `${API_BASE}/api/trips`,
-  diary:         `${API_BASE}/api/diary`,
+// 공통 fetch 래퍼: JSON 자동 파싱 + 토큰 자동 부착 + 오류 메시지 정리
+export async function apiFetch<T = any>(
+  path: string,
+  init: RequestInit = {}
+): Promise<T> {
+  const url = apiUrl(path);
 
-  // 🚗 앱 내 길찾기(카카오모빌리티 REST 프록시)
-  routeDriving:  `${API_BASE}/api/route/driving`,
-};
+  // 헤더 구성
+  const headers = new Headers(init.headers || {});
+  if (init.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  const token =
+    (typeof localStorage !== "undefined" && localStorage.getItem("token")) ||
+    (typeof sessionStorage !== "undefined" && sessionStorage.getItem("token"));
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
 
-// 상대/절대 경로 모두 처리하는 fetch 래퍼
-export async function apiFetch(path: string, init?: RequestInit) {
-  const base = API_BASE || '';
-  const url = /^https?:\/\//i.test(path) ? path : `${base}${path}`;
-  const res = await fetch(url, { credentials: 'include', ...init });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const ct = res.headers.get('content-type') || '';
-  if (ct.includes('application/json')) return res.json();
-  return res.text();
+  const res = await fetch(url, {
+    ...init,
+    headers,
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    // 에러 바디가 JSON/문자열인 경우 우선 추출
+    const text = await res.text().catch(() => "");
+    // 서버가 JSON 에러 메세지를 주는 경우 최대한 보여주기
+    try {
+      const j = text ? JSON.parse(text) : null;
+      const msg = j?.detail || j?.message || j?.error || text || `HTTP ${res.status}`;
+      throw new Error(msg);
+    } catch {
+      throw new Error(text || `HTTP ${res.status}`);
+    }
+  }
+
+  const ct = res.headers.get("content-type") || "";
+  if (ct.includes("application/json")) {
+    return (await res.json()) as T;
+  }
+  // 텍스트/빈 응답 등
+  return (await res.text()) as unknown as T;
 }

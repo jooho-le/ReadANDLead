@@ -1,57 +1,76 @@
-
+// src/api/trips.ts
 import { apiFetch } from "./config";
 
-export type Source = 'kakao' | 'google' | 'naver';
+/** 외부 소스 식별자 */
+export type Source = "kakao" | "google" | "naver";
 
+/** 여행(Trip) */
 export type Trip = {
   id: string;
   title: string;
   startDate?: string | null;
   endDate?: string | null;
+  createdAt?: string;
 };
 
+/** 경유지(Stop) — 화면 코드 호환 위해 placeName 포함 */
 export type Stop = {
   id: string;
-  placeName: string;   // 백엔드 필드명에 맞춰 수정 가능 (name/title 등)
-  date?: string;       // 'YYYY-MM-DD'
-  startTime?: string;  // 'HH:MM'
+  tripId: string;
+  placeId: string;
+  placeName?: string;
+  lat?: number;
+  lng?: number;
+  address?: string;
+  date?: string | null;       // yyyy-mm-dd
+  startTime?: string | null;  // HH:mm
+  notes?: string | null;
 };
 
-export const listMyTrips = () =>
-  apiFetch("/trips?mine=1") as Promise<Trip[]>;
+/** 내 여행 목록 */
+export const listMyTrips = (): Promise<Trip[]> =>
+  apiFetch<Trip[]>("/api/trips?mine=1");
 
+/** 여행 생성 */
 export const createTrip = (data: {
   title: string;
   startDate?: string | null;
   endDate?: string | null;
-}) =>
-  apiFetch("/trips", {
+}): Promise<Trip> =>
+  apiFetch<Trip>("/api/trips", {
     method: "POST",
     body: JSON.stringify(data),
-  }) as Promise<Trip>;
+  });
 
+/** 장소 upsert → 내부 placeId 반환 */
 export const upsertPlace = (p: {
-  source: "kakao" | "google" | "naver";
+  source: Source;
   externalId: string;
   name: string;
   lat?: number;
   lng?: number;
   address?: string;
-}) =>
-  apiFetch("/places/upsert", {
+}): Promise<{ id: string }> =>
+  apiFetch<{ id: string }>("/api/places/upsert", {
     method: "POST",
     body: JSON.stringify(p),
-  }) as Promise<{ id: string }>;
+  });
 
-export const addStop = (tripId: string, payload: {
-  placeId: string;
-  date?: string;
-  startTime?: string;
-}) =>
-  apiFetch(`/trips/${tripId}/stops`, {
+/** 경유지 추가 */
+export const addStop = (
+  tripId: string,
+  payload: {
+    placeId: string;
+    date?: string;
+    startTime?: string;
+    notes?: string;
+  }
+): Promise<Stop> =>
+  apiFetch<Stop>(`/api/trips/${tripId}/stops`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
 
-export const listStops = (tripId: string) =>
-  apiFetch(`/api/trips/${tripId}/stops`);
+/** 특정 여행의 경유지 목록 */
+export const listStops = (tripId: string): Promise<Stop[]> =>
+  apiFetch<Stop[]>(`/api/trips/${tripId}/stops`);

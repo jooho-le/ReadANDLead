@@ -1,0 +1,27 @@
+[
+  {
+    "id": "han-001",
+    "author": "한도연",
+    "title": "광주 ― 『소년이 온다』와 함께 걷다",
+    "date": "2025-08-01T10:00:00.000Z",
+    "cover": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1600&auto=format&fit=crop",
+    "tags": ["광주", "문학산책", "한강"],
+    "contentHtml": "<p>오전엔 5·18 민주광장에서 <em>『소년이 온다』</em>의 문장을 소리내 읽었어요. 바람이 조금 불던 날이었습니다.</p><p>금남로를 따라 걸으며 기억과 기록의 간격을 생각했습니다. <strong>아카이브센터</strong>에 들러 전시를 보고, 저녁엔 양림동 카페에서 노트에 문장들을 적었죠.</p><p>📍 추천 동선: 민주광장 → 금남로 → 아카이브센터 → 양림동</p>",
+    "images": [
+      "https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1600&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1541881856704-3c4b2896b6b1?q=80&w=1600&auto=format&fit=crop"
+    ]
+  },
+  {
+    "id": "kim-002",
+    "author": "김라온",
+    "title": "전주 서학동에서 만난 시, 골목, 그리고 빵",
+    "date": "2025-08-10T09:30:00.000Z",
+    "cover": "https://images.unsplash.com/photo-1520975916090-3105956dac38?q=80&w=1600&auto=format&fit=crop",
+    "tags": ["전주", "시집", "산책"],
+    "contentHtml": "<p>서학동 예술마을의 골목은 마치 오래된 시집 같아요. 한 장씩 넘기듯, <u>작은 갤러리와 공방</u>을 들렀습니다.</p><p>노상에서 읽은 시는 <em>진은영</em>. 오후엔 오월의 햇살을 피해 서늘한 서점에서 시간을 보냈습니다.</p>",
+    "images": [
+      "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?q=80&w=1600&auto=format&fit=crop"
+    ]
+  }
+]

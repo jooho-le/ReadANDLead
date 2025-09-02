@@ -120,7 +120,7 @@ export function ItineraryPanel() {
             {items.map(s => (
               <div key={s.id} id={`stop-${s.id}`} style={{border:'1px solid #eef2f7', borderRadius:12, padding:12}}>
                 <Row style={{justifyContent:'space-between'}}>
-                  <div style={{fontWeight:600}}>{s.placeName}</div>
+                  <div style={{fontWeight:600}}>{(s as any).name || (s as any).placeName || '장소'}</div>
                   <div style={{fontSize:12, color:'#6b7280'}}>
                     {[s.date, s.startTime].filter(Boolean).join(' · ')}
                   </div>
