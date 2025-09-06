@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { useParams, Link } from 'react-router-dom';
-import { getNeighborPost } from '../api/neighbor';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { getNeighborPost, deleteNeighborPost, listComments, createComment, deleteComment, claimNeighborPost, type NeighborComment } from '../api/neighbor';
+import { me as fetchMe } from '../api/auth';
 import type { NeighborPost } from '../api/neighbor';
 
 const Wrap = styled.div`
@@ -67,8 +68,12 @@ const Photo = styled.img`
 
 export default function NeighborPostPage() {
   const { id } = useParams<{ id: string }>();
+  const nav = useNavigate();
   const [post, setPost] = useState<NeighborPost | null>(null);
   const [loading, setLoading] = useState(true);
+  const [myName, setMyName] = useState<string>('');
+  const [comments, setComments] = useState<NeighborComment[]>([]);
+  const [commentText, setCommentText] = useState('');
 
   useEffect(() => {
     let alive = true;
@@ -77,6 +82,16 @@ export default function NeighborPostPage() {
         if (!id) return;
         const p = await getNeighborPost(id);
         if (alive) setPost(p);
+        // 내 정보
+        try {
+          const profile = await fetchMe();
+          if (alive) setMyName(profile.display_name || profile.email);
+        } catch {}
+        // 댓글
+        try {
+          const list = await listComments(id);
+          if (alive) setComments(list || []);
+        } catch {}
       } catch (e) {
         console.error('getNeighborPost failed', e);
         if (alive) setPost(null);
@@ -97,6 +112,32 @@ export default function NeighborPostPage() {
       <Meta>
         {post.author} · {new Date(post.date).toLocaleString()}
       </Meta>
+      {myName && post.author === myName && (
+        <div style={{ marginBottom: 12 }}>
+          <button
+            onClick={async () => {
+              if (!id) return;
+              if (!window.confirm('정말 이 글을 삭제할까요?')) return;
+              try {
+                await deleteNeighborPost(id);
+                nav('/neighbors');
+              } catch (e) {
+                // 레거시 글(익명/소유자 미지정) 대비: 소유권 등록 후 재시도
+                try {
+                  await claimNeighborPost(id);
+                  await deleteNeighborPost(id);
+                  nav('/neighbors');
+                } catch {
+                  alert('삭제 실패: 권한이 없거나 오류가 발생했습니다.');
+                }
+              }
+            }}
+            style={{ border: '1px solid #e33', background: '#e33', color: '#fff', borderRadius: 8, padding: '8px 12px', fontWeight: 700 }}
+          >
+            글 삭제
+          </button>
+        </div>
+      )}
 
       {post.cover && <Cover src={post.cover} alt="cover" />}
 
@@ -110,6 +151,70 @@ export default function NeighborPostPage() {
           ))}
         </Gallery>
       )}
+
+      {/* 댓글 섹션 */}
+      <div style={{ marginTop: 28 }}>
+        <h3 style={{ marginTop: 24 }}>댓글</h3>
+        {comments.length === 0 ? (
+          <div style={{ color: '#666' }}>아직 댓글이 없습니다.</div>
+        ) : (
+          <div style={{ display: 'grid', gap: 10, marginTop: 8 }}>
+            {comments.map((c) => (
+              <div key={c.id} style={{ border: '1px solid #eee', borderRadius: 10, padding: 10 }}>
+                <div style={{ fontWeight: 700 }}>{c.author}</div>
+                <div style={{ color: '#555', whiteSpace: 'pre-wrap' }}>{c.content}</div>
+                <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>{new Date(c.date).toLocaleString()}</div>
+                {myName && c.author === myName && (
+                  <div style={{ marginTop: 6 }}>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await deleteComment(id!, c.id);
+                          setComments((prev) => prev.filter((x) => x.id !== c.id));
+                        } catch {
+                          alert('댓글 삭제 실패');
+                        }
+                      }}
+                      style={{ border: '1px solid #ddd', background: '#fff', borderRadius: 8, padding: '6px 10px' }}
+                    >
+                      삭제
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 댓글 입력 */}
+        {myName ? (
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <input
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="댓글을 입력하세요"
+              style={{ flex: 1, border: '1px solid #ddd', borderRadius: 8, padding: '10px 12px' }}
+            />
+            <button
+              onClick={async () => {
+                if (!commentText.trim()) return;
+                try {
+                  const c = await createComment(id!, commentText.trim());
+                  setComments((prev) => [...prev, c]);
+                  setCommentText('');
+                } catch {
+                  alert('댓글 등록 실패');
+                }
+              }}
+              style={{ border: '1px solid #111', background: '#111', color: '#fff', borderRadius: 8, padding: '10px 14px', fontWeight: 700 }}
+            >
+              등록
+            </button>
+          </div>
+        ) : (
+          <div style={{ color: '#666', marginTop: 8 }}>로그인 후 댓글을 작성할 수 있어요.</div>
+        )}
+      </div>
     </Wrap>
   );
 }

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { createNeighborPost } from '../api/neighbor';
+import { createNeighborPost, uploadImage } from '../api/neighbor';
 
 const Wrap = styled.div`
   max-width: 900px; margin: 0 auto; padding: 24px 20px 60px;
@@ -24,10 +24,44 @@ const Primary = styled(Btn)`background:#667eea;color:#fff;border-color:#667eea;f
 export default function NeighborCompose() {
   const nav = useNavigate();
   const [title, setTitle] = useState('');
-  const [cover, setCover] = useState('');
+  const [coverUrl, setCoverUrl] = useState('');
   const [content, setContent] = useState('<p>여기에 내용을 입력하세요…</p>');
-  const [images, setImages] = useState<string>('');
+  const [images, setImages] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+
+  async function onSelectCover(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    try {
+      setBusy(true);
+      const url = await uploadImage(f);
+      setCoverUrl(url);
+    } catch (e) {
+      alert('커버 업로드 실패');
+    } finally {
+      setBusy(false);
+      e.target.value = '';
+    }
+  }
+
+  async function onSelectGallery(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    try {
+      setBusy(true);
+      const urls: string[] = [];
+      for (const f of files) {
+        const u = await uploadImage(f);
+        urls.push(u);
+      }
+      setImages(prev => [...prev, ...urls]);
+    } catch (e) {
+      alert('이미지 업로드 실패');
+    } finally {
+      setBusy(false);
+      e.target.value = '';
+    }
+  }
 
   async function save() {
     if (busy) return;
@@ -37,12 +71,11 @@ export default function NeighborCompose() {
 
     setBusy(true);
     try {
-      const imgs = images.split('\n').map(s => s.trim()).filter(Boolean);
       const r = await createNeighborPost({
         title,
-        cover: cover || undefined,
+        cover: coverUrl || undefined,
         content_html: content,
-        images: imgs.length ? imgs : undefined,
+        images: images.length ? images : undefined,
       });
       nav(`/neighbors/${r.id}`);
     } catch (e) {
@@ -60,14 +93,26 @@ export default function NeighborCompose() {
       <Label>제목</Label>
       <Input value={title} onChange={e=>setTitle(e.target.value)} placeholder="예: 광주 — 『소년이 온다』와 함께 걷다" />
 
-      <Label>커버 이미지(URL, 선택)</Label>
-      <Input value={cover} onChange={e=>setCover(e.target.value)} placeholder="https://…"/>
+      <Label>커버 이미지(파일 선택)</Label>
+      <Input type="file" accept="image/*" onChange={onSelectCover} />
+      {coverUrl && (
+        <div style={{ marginTop: 8 }}>
+          <img src={coverUrl} alt="cover" style={{ width: '100%', maxHeight: 240, objectFit: 'cover', borderRadius: 10 }} />
+        </div>
+      )}
 
       <Label>본문(HTML 가능)</Label>
       <TextArea value={content} onChange={e=>setContent(e.target.value)} />
 
-      <Label>본문 하단 갤러리 이미지들(URL, 줄바꿈으로 구분, 선택)</Label>
-      <TextArea style={{minHeight:120}} value={images} onChange={e=>setImages(e.target.value)} placeholder={'https://img1...\nhttps://img2...'} />
+      <Label>갤러리 이미지(여러 파일 선택 가능)</Label>
+      <Input type="file" accept="image/*" multiple onChange={onSelectGallery} />
+      {images.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 8, marginTop: 8 }}>
+          {images.map((src, idx) => (
+            <img key={idx} src={src} alt={`img-${idx}`} style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 8 }} />
+          ))}
+        </div>
+      )}
 
       <Row>
         <Btn onClick={()=>nav(-1)}>취소</Btn>

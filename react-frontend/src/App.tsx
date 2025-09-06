@@ -16,6 +16,7 @@ import LiteraryTripScrap from './pages/LiteraryTripScrap';
 import Neighbors from './pages/Neighbors';
 import NeighborPostPage from './pages/NeighborPost';
 import NeighborCompose from './pages/NeighborCompose';
+import PlaceToBook from './pages/PlaceToBook';
 
 const Main = styled.main`
   min-height: 100vh;
@@ -31,6 +32,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/map" element={<LocationMap />} />
+          <Route path="/place-to-book" element={<PlaceToBook />} />
           <Route path="/diary" element={<TravelDiary />} />
           <Route path="/four-cut" element={<FourCutCreator />} />
           <Route path="/literary-scrap" element={<LiteraryTripScrap />} />

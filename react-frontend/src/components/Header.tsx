@@ -287,8 +287,9 @@ export default function Header() {
 
   const navItems: NavItemDef[] = [
     { path: '/', label: '홈', icon: () => iconEl(FaBook) },
-    { path: '/map', label: '지도', icon: () => iconEl(FaMapMarkedAlt) },
-    { path: '/diary', label: '여행일기', icon: () => iconEl(FaBookOpen) },
+    { path: '/map', label: '책으로 장소찾기', icon: () => iconEl(FaMapMarkedAlt) },
+    { path: '/place-to-book', label: '장소로 책 찾기', icon: () => iconEl(FaMapMarkedAlt) },
+    { path: '/diary', label: '여행 퀘스트북', icon: () => iconEl(FaBookOpen) },
     { path: '/four-cut', label: '인생네컷', icon: () => iconEl(FaImages) },
     { path: '/literary-scrap', label: '스크랩', icon: () => iconEl(FaFolderOpen) },
     // ✅ 정확히 복수형 경로
@@ -456,4 +457,3 @@ export default function Header() {
     </HeaderContainer>
   );
 }
-

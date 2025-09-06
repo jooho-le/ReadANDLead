@@ -1,5 +1,5 @@
 // src/api/neighbor.ts
-import { apiFetch } from './config';
+import { apiFetch, apiUrl } from './config';
 
 export type NeighborPost = {
   id: number;
@@ -9,6 +9,14 @@ export type NeighborPost = {
   cover?: string;
   images?: string[];
   content_html: string;
+};
+
+export type NeighborComment = {
+  id: number;
+  post_id: number;
+  author: string;
+  content: string;
+  date: string;
 };
 
 export type PostCreateInput = {
@@ -23,6 +31,7 @@ export type PostUpdateInput = Partial<PostCreateInput>;
 // ✅ 이 파일 안에서만 사용할 경로 상수
 const EP = {
   neighborPosts: '/api/neighbor-posts',
+  upload: '/api/uploads',
 };
 
 // 목록 조회 (공개)
@@ -67,4 +76,42 @@ export function updateNeighborPost(id: string | number, body: PostUpdateInput) {
 // 삭제 (인증 & 본인 글만)
 export function deleteNeighborPost(id: string | number) {
   return apiFetch<void>(`${EP.neighborPosts}/${id}`, { method: 'DELETE' });
+}
+
+export function claimNeighborPost(id: string | number) {
+  return apiFetch<void>(`${EP.neighborPosts}/${id}/claim`, { method: 'POST' });
+}
+
+// 파일 업로드 → 업로드된 공개 URL 반환
+export async function uploadImage(file: File): Promise<string> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch(apiUrl(EP.upload), {
+    method: 'POST',
+    body: form,
+    credentials: 'include',
+    headers: (() => {
+      const h = new Headers();
+      const token = typeof localStorage !== 'undefined' && localStorage.getItem('token');
+      if (token) h.set('Authorization', `Bearer ${token}`);
+      return h;
+    })(),
+  });
+  if (!res.ok) throw new Error('upload failed');
+  const j = await res.json();
+  return j.url as string;
+}
+
+// 댓글 API
+export function listComments(postId: number | string) {
+  return apiFetch<NeighborComment[]>(`${EP.neighborPosts}/${postId}/comments`);
+}
+export function createComment(postId: number | string, content: string) {
+  return apiFetch<NeighborComment>(`${EP.neighborPosts}/${postId}/comments`, {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  });
+}
+export function deleteComment(postId: number | string, commentId: number | string) {
+  return apiFetch<void>(`${EP.neighborPosts}/${postId}/comments/${commentId}`, { method: 'DELETE' });
 }
