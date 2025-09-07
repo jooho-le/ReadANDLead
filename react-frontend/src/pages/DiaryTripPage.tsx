@@ -2,6 +2,7 @@
 
 import { NavLink, Outlet, useParams } from 'react-router-dom';
 import styled from 'styled-components';
+import { useLocation } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { StopPlanner } from '../components/StopPlanner';
 import { DiaryComposer } from '../components/diary/DiaryComposer';
@@ -17,6 +18,7 @@ const Tabs = styled.div`
   a{ padding:10px 14px; border-radius:12px 12px 0 0; text-decoration:none; color:#475569; }
   a.active{ background:#ffffff; border:1px solid #e5e7eb; border-bottom-color:transparent; color:#111827; }
 `;
+
 
 /* ---------------- Layout ---------------- */
 
@@ -41,11 +43,13 @@ export default function DiaryTripLayout() {
 export function PlanPanel() {
   const { id } = useParams<{ id: string }>();
   return (
-    <div style={{display:'grid', gap:12}}>
+    <div style={{ display: 'grid', gap: 12 }}>
+
       <StopPlanner tripId={id!} onAdded={() => { /* 필요시 토스트 */ }} />
     </div>
   );
 }
+
 
 export function JournalPanel() {
   const { id } = useParams<{ id: string }>();
