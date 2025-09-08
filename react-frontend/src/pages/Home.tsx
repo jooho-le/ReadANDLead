@@ -240,7 +240,7 @@ const Home: React.FC = () => {
       icon: FaBookOpen, // 여행일기/퀘스트북
       title: '여행 퀘스트북',
       description: '책을 기반으로 한 여행계획을 추천받고 책 도장을 모아 할인된 가격으로 책을 구매해 보세요.',
-      link: '/diary',
+      link: '/travel-diary',
     },
     {
       icon: FaUsers, // 커뮤니티/이웃

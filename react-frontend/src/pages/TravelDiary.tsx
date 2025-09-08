@@ -69,11 +69,11 @@ export default function TravelDiary() {
     const title = bookTitle.trim();
     if (!title) return;
     const id =
-      typeof crypto !== 'undefined' && (crypto as any).randomUUID
-        ? (crypto as any).randomUUID()
-        : `trip_${Date.now().toString(36)}`;
-    const qs = new URLSearchParams({ title }).toString();
-    nav(`/diary/trip/${encodeURIComponent(id)}/plan?${qs}`);
+    typeof crypto !== "undefined" && (crypto as any).randomUUID
+      ? (crypto as any).randomUUID()
+      : `trip_${Date.now().toString(36)}`;
+
+  nav(`/book-trip/${id}?title=${encodeURIComponent(title)}`);
   };
 
   // 데모 데이터(원래 있던 카드 레이아웃)
@@ -129,7 +129,7 @@ export default function TravelDiary() {
               </button>
             </Row>
             <Muted style={{ marginTop: 8 }}>
-              책 제목을 입력하고 시작하기를 누르면 /diary/trip/ID/plan 페이지로 이동합니다.
+              책 제목을 입력하고 시작하기를 누르면 /book-trip 페이지로 이동합니다.
             </Muted>
           </Card>
 

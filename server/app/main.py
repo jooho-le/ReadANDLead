@@ -1,13 +1,19 @@
 # server/app/main.py
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from .routers import posts, auth   # ✅ auth 추가
+from .routers import posts, auth
 from .routers import stats as stats_router
 from .routers import culture as culture_router
 from .routers import kopis as kopis_router
 from .routers import uploads as uploads_router
 from fastapi.staticfiles import StaticFiles
+from dotenv import load_dotenv
+load_dotenv()
+
 import os
+import httpx
+import json
 
 app = FastAPI(title="Read&Lead API")
 
@@ -36,3 +42,147 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 @app.get("/api/ping")
 def ping():
     return {"ok": True}
+
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+@app.post("/api/travel/plan")
+async def make_plan(req: Request):
+    body = await req.json()
+    if not OPENAI_API_KEY:
+        return JSONResponse({"error": "OPENAI_API_KEY not set"}, status_code=500)
+
+    # 요청 본문 정리
+    meta = {
+        "title": body.get("title", ""),
+        "startDate": body.get("startDate", ""),
+        "endDate": body.get("endDate", ""),
+        "people": body.get("people", 0),
+        "notes": body.get("notes", ""),
+        "themes": body.get("themes", []),
+    }
+    book = {"title": body.get("sourceBookTitle", "")}
+
+    system = "You are a travel planner that designs itineraries inspired by a given book. Return valid JSON."
+    user_payload = {
+        "instruction": "책과 연결된 여행 일정을 만들어줘.",
+        "book": {"title": body.get("sourceBookTitle", "")},
+        "meta": {
+            "title": body.get("title", ""),
+            "startDate": body.get("startDate", ""),
+            "endDate": body.get("endDate", ""),
+            "people": body.get("people", 0),
+            "notes": body.get("notes", ""),
+            "themes": body.get("themes", []),
+        },
+        "constraints": {"style": "practical, accessible, safety-aware", "outputLanguage": "ko"},
+    }
+    json_schema = {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "planTitle": {"type": "string"},
+            "summary": {"type": "string"},
+            "days": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {
+                        "date": {"type": "string"},
+                        "themeFocus": {"type": "string"},
+                        "morning": {"type": "string"},
+                        "afternoon": {"type": "string"},
+                        "evening": {"type": "string"},
+                        "foodSuggestions": {
+                            "type": "array",
+                            "items": {"type": "string"}
+                        },
+                        "notes": {"type": "string"}
+                    },
+                    # ⛳️ properties의 모든 키를 required에 '그대로' 포함
+                    "required": [
+                        "date",
+                        "themeFocus",
+                        "morning",
+                        "afternoon",
+                        "evening",
+                        "foodSuggestions",
+                        "notes"
+                    ]
+                }
+            },
+            "packingTips": {
+                "type": "array",
+                "items": {"type": "string"}
+            },
+            "cautions": {
+                "type": "array",
+                "items": {"type": "string"}
+            }
+        },
+        # ⛳️ 최상위도 마찬가지로 모든 키 나열
+        "required": ["planTitle", "summary", "days", "packingTips", "cautions"]
+    }
+
+    openai_req = {
+        "model": "gpt-4o-mini",  # 또는 "gpt-4o-2024-08-06"
+        "input": [
+            {
+                "role": "system",
+                "content": [
+                    {"type": "input_text", "text": system}
+                ],
+            },
+            {
+                "role": "user",
+                "content": [
+                    {"type": "input_text", "text": json.dumps({
+                        "instruction": "책과 연결된 여행 일정을 만들어줘.",
+                        "book": book,
+                        "meta": meta,
+                        "constraints": {
+                            "style": "practical, accessible, safety-aware",
+                            "outputLanguage": "ko"
+                        }
+                    }, ensure_ascii=False)}
+                ],
+            },
+        ],
+        "text": {
+            "format": {
+                "type": "json_schema",
+                "name": "TravelPlan",
+                "schema": json_schema,
+                "strict": True
+            }
+        },
+        "temperature": 0.6,
+    }
+
+    async with httpx.AsyncClient(timeout=60) as client:
+        r = await client.post(
+            "https://api.openai.com/v1/responses",
+            headers={
+                "Authorization": f"Bearer {OPENAI_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json=openai_req,
+        )
+
+    if r.status_code >= 400:
+        return JSONResponse({"detail": r.text}, status_code=r.status_code)
+
+    data = r.json()
+    content = (
+        data.get("output_text")
+        or (data.get("choices", [{}])[0].get("message", {}).get("content"))
+        or (data.get("output", [{}])[0].get("content", [{}])[0].get("text"))
+    )
+
+    try:
+        plan = json.loads(content) if isinstance(content, str) else content
+    except Exception:
+        plan = {"raw": content}
+
+    return JSONResponse(plan, status_code=200)
