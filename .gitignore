@@ -28,6 +28,11 @@ react-frontend/.eslintcache
 react-frontend/.parcel-cache/
 react-frontend/dist/
 react-frontend/build/
+react-frontend/android/app/src/main/assets/public/
+react-frontend/android/app/build/
+react-frontend/android.bak*/
+*.keystore
+*.jks
 
 # ===== Environment / Secrets =====
 .env

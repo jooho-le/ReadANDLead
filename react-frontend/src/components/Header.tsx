@@ -6,7 +6,6 @@ import {
   FaMapMarkedAlt,
   FaBookOpen,
   FaImages,
-  FaFolderOpen,
   FaSignInAlt,
 } from 'react-icons/fa';
 import type { IconType, IconBaseProps } from 'react-icons';
@@ -28,7 +27,10 @@ const HeaderContainer = styled.header`
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   z-index: 1000;
-  padding: 0 20px;
+  padding: env(safe-area-inset-top, 0px) 20px 0 20px; /* status bar 안전영역 확보 */
+  @media (max-width: 768px) {
+    padding: env(safe-area-inset-top, 0px) 12px 0 12px;
+  }
 `;
 
 const Nav = styled.nav`
@@ -38,12 +40,18 @@ const Nav = styled.nav`
   justify-content: space-between;
   align-items: center;
   height: 80px;
+  @media (max-width: 768px) {
+    height: 56px;
+  }
 `;
 
 const Left = styled.div`
   display: flex;
   align-items: center;
   gap: 32px;
+  @media (max-width: 900px) {
+    gap: 14px;
+  }
 `;
 
 const Logo = styled(Link)`
@@ -62,6 +70,9 @@ const Logo = styled(Link)`
     transform: scale(1.05);
     transition: transform 0.3s ease;
   }
+  @media (max-width: 768px) {
+    font-size: 1.25rem;
+  }
 `;
 
 const NavMenu = styled.ul`
@@ -72,6 +83,7 @@ const NavMenu = styled.ul`
   margin: 0;
   padding: 0;
   flex-wrap: nowrap;
+  @media (max-width: 900px) { display: none; }
 `;
 
 const NavItem = styled.li`
@@ -95,6 +107,10 @@ const NavLink = styled(Link)<{ $active: boolean }>`
     background: rgba(102,126,234,0.1);
     transform: translateY(-2px);
   }
+  @media (max-width: 900px) {
+    padding: 8px 10px;
+    font-size: 0.9rem;
+  }
 `;
 
 const AuthArea = styled.div`
@@ -102,6 +118,40 @@ const AuthArea = styled.div`
   gap: 8px;
   align-items: center;
   margin-left: 40px;
+  @media (max-width: 900px) {
+    margin-left: 12px;
+  }
+`;
+
+// Mobile menu (drawer)
+const MobileMenuBtn = styled.button`
+  display: none;
+  @media (max-width: 900px) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e5e5e5;
+    background: #fff;
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+`;
+
+const DrawerBackdrop = styled.div`
+  position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 1200;
+  display: flex; justify-content: flex-end;
+`;
+const Drawer = styled.nav`
+  width: min(86vw, 320px); height: 100%; background: #fff;
+  padding: 14px; box-shadow: -8px 0 24px rgba(0,0,0,.15);
+  display: flex; flex-direction: column; gap: 8px;
+`;
+const DrawerItem = styled(Link)<{ $active?: boolean }>`
+  padding: 12px 14px; border-radius: 10px; text-decoration: none;
+  color: ${(p) => (p.$active ? '#667eea' : '#333')};
+  background: ${(p) => (p.$active ? 'rgba(102,126,234,0.1)' : '#fff')};
+  border: 1px solid ${(p) => (p.$active ? 'rgba(102,126,234,.3)' : '#e5e5e5')};
 `;
 
 const LoginBtn = styled.button`
@@ -249,6 +299,7 @@ export default function Header() {
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errMsg, setErrMsg] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // CRA / Vite 둘 다 대응 (경고는 무시 가능)
   const API_URL = useMemo(
@@ -290,9 +341,8 @@ export default function Header() {
     { path: '/map', label: '책으로 장소찾기', icon: () => iconEl(FaMapMarkedAlt) },
     { path: '/place-to-book', label: '장소로 책 찾기', icon: () => iconEl(FaMapMarkedAlt) },
     { path: '/diary', label: '여행 퀘스트북', icon: () => iconEl(FaBookOpen) },
+    { path: '/agency-trips', label: '관광사와 책여행 떠나기', icon: () => iconEl(FaBookOpen) },
     { path: '/four-cut', label: '인생네컷', icon: () => iconEl(FaImages) },
-    { path: '/literary-scrap', label: '스크랩', icon: () => iconEl(FaFolderOpen) },
-    // ✅ 정확히 복수형 경로
     { path: '/neighbors', label: '이웃의 책여행 따라가기', icon: () => iconEl(FaBook) },
   ];
 
@@ -349,6 +399,7 @@ export default function Header() {
       <Nav>
         <Left>
           <Logo to="/">{iconEl(FaBook)} Read &amp; Lead</Logo>
+          <MobileMenuBtn onClick={() => setMenuOpen(true)}>메뉴</MobileMenuBtn>
           <NavMenu>
             {navItems.map((item) => (
               <NavItem key={item.path}>
@@ -381,6 +432,18 @@ export default function Header() {
           )}
         </AuthArea>
       </Nav>
+
+      {menuOpen && (
+        <DrawerBackdrop onClick={() => setMenuOpen(false)}>
+          <Drawer onClick={(e)=>e.stopPropagation()}>
+            {navItems.map((it) => (
+              <DrawerItem key={it.path} to={it.path} $active={location.pathname === it.path} onClick={() => setMenuOpen(false)}>
+                {it.label}
+              </DrawerItem>
+            ))}
+          </Drawer>
+        </DrawerBackdrop>
+      )}
 
       {showModal && (
         <Portal>
