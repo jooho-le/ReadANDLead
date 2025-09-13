@@ -1,13 +1,19 @@
 # server/app/main.py
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routers import posts, auth   # ✅ auth 추가
+from .routers import posts, auth  
 from .routers import stats as stats_router
 from .routers import culture as culture_router
 from .routers import kopis as kopis_router
 from .routers import uploads as uploads_router
 from fastapi.staticfiles import StaticFiles
+from .routers import trips as trips_router
 import os
+
+print("OPENAI_API_KEY:", os.getenv("OPENAI_API_KEY"))
 
 app = FastAPI(title="Read&Lead API")
 
@@ -36,3 +42,6 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 @app.get("/api/ping")
 def ping():
     return {"ok": True}
+
+app.include_router(trips_router.router, prefix="/api/trips", tags=["trips"])
+
