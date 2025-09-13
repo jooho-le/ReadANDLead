@@ -1,10 +1,12 @@
 from datetime import datetime, timedelta
 from jose import jwt
 from passlib.context import CryptContext
+import os
 
-SECRET_KEY = "change-me-to-a-strong-secret"  # 환경변수/Secret 관리 권장
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_DAYS = 7
+# Load from environment (fallbacks are dev-only defaults)
+SECRET_KEY = os.getenv("SECRET_KEY", "change-me-to-a-strong-secret")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_DAYS = int(os.getenv("ACCESS_TOKEN_EXPIRE_DAYS", "7"))
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
