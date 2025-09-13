@@ -340,8 +340,12 @@ export default function Header() {
     { path: '/', label: '홈', icon: () => iconEl(FaBook) },
     { path: '/map', label: '책으로 장소찾기', icon: () => iconEl(FaMapMarkedAlt) },
     { path: '/place-to-book', label: '장소로 책 찾기', icon: () => iconEl(FaMapMarkedAlt) },
+
+    { path: '/travel-diary', label: '여행 퀘스트북', icon: () => iconEl(FaBookOpen) },
+
     { path: '/diary', label: '여행 퀘스트북', icon: () => iconEl(FaBookOpen) },
     { path: '/agency-trips', label: '관광사와 책여행 떠나기', icon: () => iconEl(FaBookOpen) },
+
     { path: '/four-cut', label: '인생네컷', icon: () => iconEl(FaImages) },
     { path: '/neighbors', label: '이웃의 책여행 따라가기', icon: () => iconEl(FaBook) },
   ];

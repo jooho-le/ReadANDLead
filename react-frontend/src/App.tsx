@@ -10,8 +10,13 @@ import Home from './pages/Home';
 import LocationMap from './pages/LocationMap';
 import TravelDiary from './pages/TravelDiary';
 import FourCutCreator from './pages/FourCutCreator';
+
+import LiteraryTripScrap from './pages/LiteraryTripScrap';
+import BookTripPage from "./pages/BookTripPage";
+
 import AgencyTrips from './pages/AgencyTrips';
 import AgencyTripDetail from './pages/AgencyTripDetail';
+
 
 // 이웃의 책여행
 import Neighbors from './pages/Neighbors';
@@ -19,6 +24,7 @@ import NeighborPostPage from './pages/NeighborPost';
 import NeighborCompose from './pages/NeighborCompose';
 import PlaceToBook from './pages/PlaceToBook';
 import DiaryTripLayout from "./pages/DiaryTripPage";
+import BookTripDetailPage from "./pages/BookTripDetailPage";
 
 const Main = styled.main`
   min-height: 100vh;
@@ -38,14 +44,19 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/map" element={<LocationMap />} />
           <Route path="/place-to-book" element={<PlaceToBook />} />
+
+          <Route path="/travel-diary" element={<TravelDiary />} />
+          <Route path="/book-trip/:id" element={<BookTripPage />} />
+
           <Route path="/diary" element={<TravelDiary />} />
           <Route path="/agency-trips" element={<AgencyTrips />} />
           <Route path="/agency-trips/:id" element={<AgencyTripDetail />} />
+
           <Route path="/four-cut" element={<FourCutCreator />} />
 
 
           <Route path="/literary-scrap" element={<LiteraryTripScrap />} />
-          <Route path="/diary/trip/:id/plan" element={<DiaryTripLayout />} />
+          {/*<Route path="/diary/trip/:id/plan" element={<DiaryTripLayout />} />*/}
 
 
           {/* ✅ 'new'는 :id보다 먼저 선언해야 함 */}
