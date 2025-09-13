@@ -1,0 +1,19 @@
+[Unit]
+Description=Read&Lead FastAPI (Gunicorn/Uvicorn)
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/readandlead/server
+EnvironmentFile=/opt/readandlead/server/.env
+ExecStart=/usr/bin/env bash -lc '\
+  source /opt/readandlead/venv/bin/activate && \
+  exec gunicorn -k uvicorn.workers.UvicornWorker server.app.main:app \
+    --workers 2 --bind 127.0.0.1:8000 --timeout 60'
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+

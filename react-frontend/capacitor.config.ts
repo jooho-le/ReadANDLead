@@ -9,6 +9,9 @@ const config: CapacitorConfig = {
   // This matches common API key referrer/domain settings and avoids blocking.
   server: {
     androidScheme: 'http',
+    // For production, if you prefer to load the remote web app instead of bundling:
+    // url: 'https://app.readandlead.app',
+    // cleartext: false,
   },
 };
 

@@ -12,9 +12,14 @@ import os
 
 app = FastAPI(title="Read&Lead API")
 
+# CORS origins: from env FRONTEND_ORIGINS (comma-separated) + sensible dev defaults
+_default_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
+_env_origins = os.getenv("FRONTEND_ORIGINS", "")
+allow_origins = [o.strip() for o in _env_origins.split(",") if o.strip()] or _default_origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
