@@ -1,0 +1,134 @@
+
+# ===== OS / IDE =====
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# ===== Python (FastAPI) =====
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+
+# Uvicorn/Logs
+*.log
+
+# ===== Node/React =====
+react-frontend/node_modules/
+react-frontend/.eslintcache
+react-frontend/.parcel-cache/
+react-frontend/dist/
+react-frontend/build/
+
+# ===== Environment / Secrets =====
+.env
+.env.*
+
+
+
+# ===== Misc =====
+*.local
+
+.env*
+
+# macOS / IDE
+.DS_Store
+.idea/
+.vscode/
+
+# Frontend
+react-frontend/node_modules/
+react-frontend/build/
+react-frontend/.env
+react-frontend/.env.local
+react-frontend/.env.*.local
+# Android WebView bundled build (do not commit secrets in built JS)
+react-frontend/android/app/src/main/assets/public/
+# Android build outputs (generated; can include bundled web assets)
+react-frontend/android/app/build/
+
+# Backend (server)
+server/venv/
+server/.venv/
+server/__pycache__/
+server/.env
+server/.env.local
+server/.env.*.local
+server/*.sqlite3
+server/app.db
+server/instance/
+server/uploads/
+
+# Logs
+*.log
+npm-debug.log*
+
+# macOS
+.DS_Store
+
+# --- React / Node (frontend)
+react-frontend/node_modules/
+react-frontend/build/
+react-frontend/.env
+react-frontend/.env.local
+react-frontend/.env.*.local
+react-frontend/npm-debug.log*
+react-frontend/yarn-error.log*
+
+# --- Python / FastAPI (server)
+# venv들
+.venv/
+venv/
+server/.venv/
+server/venv/
+
+# py 캐시/바이트코드
+__pycache__/
+**/__pycache__/
+*.py[cod]
+
+# 환경변수(비밀값)
+.env
+server/.env
+
+# 로그
+*.log
+server/*.log
+
+# --- DB (SQLite 등)
+# (JWT/회원 데이터 들어있으므로 반드시 제외)
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+*.db-journal
+app.db*
+server/app.db*
+
+# --- 업로드/미디어(사용자 이미지 등)
+server/uploads/**
+!server/uploads/.gitkeep
+
+# --- IDE/툴
+.vscode/
+.idea/
+
+# 루트 node_modules 전체 무시
+node_modules/
+
+# React Native/Android 산출물 통째로 무시
+react-frontend/android/
+
+# 서버 업로드 파일 무시(정적 업로드 경로)
+server/app/static/uploads/**
+!server/app/static/uploads/.gitkeep
