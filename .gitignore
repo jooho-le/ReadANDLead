@@ -28,6 +28,11 @@ react-frontend/.eslintcache
 react-frontend/.parcel-cache/
 react-frontend/dist/
 react-frontend/build/
+react-frontend/android/app/src/main/assets/public/
+react-frontend/android/app/build/
+react-frontend/android.bak*/
+*.keystore
+*.jks
 
 # ===== Environment / Secrets =====
 .env
@@ -51,6 +56,10 @@ react-frontend/build/
 react-frontend/.env
 react-frontend/.env.local
 react-frontend/.env.*.local
+# Android WebView bundled build (do not commit secrets in built JS)
+react-frontend/android/app/src/main/assets/public/
+# Android build outputs (generated; can include bundled web assets)
+react-frontend/android/app/build/
 
 # Backend (server)
 server/venv/

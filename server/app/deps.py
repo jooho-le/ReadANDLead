@@ -5,13 +5,14 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
+import os
 
 from .database import get_db
 from . import models
 
-# JWT 기본값 (auth 라우터와 동일하게 맞추세요)
-JWT_SECRET = "dev-secret"         # .env 로 빼고 싶으면 os.getenv("JWT_SECRET", "dev-secret")
-JWT_ALG = "HS256"
+# JWT 설정: 환경변수에서 로드 (없으면 개발 기본값)
+JWT_SECRET = os.getenv("JWT_SECRET", "dev-secret")
+JWT_ALG = os.getenv("JWT_ALGORITHM", "HS256")
 
 bearer_scheme = HTTPBearer(auto_error=False)  # Authorization 헤더가 없어도 에러 안 내고 None 반환
 

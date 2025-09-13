@@ -26,6 +26,7 @@ export const ENDPOINTS = {
   kopisPerform: "/api/kopis/perform",
   routeDriving: "/api/route/driving",
   usersCount: "/api/users/count",
+  agencyTrips: "/api/agency-trips/list",
 } as const;
 
 // 공통 fetch 래퍼: JSON 자동 파싱 + 토큰 자동 부착 + 오류 메시지 정리
