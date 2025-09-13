@@ -63,7 +63,18 @@ const Pill = styled.div`
 
 export default function TravelDiary() {
   const nav = useNavigate();
-  const [tripId, setTripId] = useState('TEST');
+  const [bookTitle, setBookTitle] = useState('');
+
+  const handleStart = () => {
+    const title = bookTitle.trim();
+    if (!title) return;
+    const id =
+      typeof crypto !== 'undefined' && (crypto as any).randomUUID
+        ? (crypto as any).randomUUID()
+        : `trip_${Date.now().toString(36)}`;
+    const qs = new URLSearchParams({ title }).toString();
+    nav(`/diary/trip/${encodeURIComponent(id)}/plan?${qs}`);
+  };
 
   // 데모 데이터(원래 있던 카드 레이아웃)
   const collections = [
@@ -81,25 +92,45 @@ export default function TravelDiary() {
       <Container>
         <Title>여행일기</Title>
 
-        {/* 액션 카드 */}
+        {/* 액션 카드 (여기서만 책 제목 입력/시작하기 표시) */}
         <Grid3>
           <Card>
             <Row style={{justifyContent:'space-between'}}>
               <Row><RcIcon icon={FaRoute} /><b>여행 계획 세우기</b></Row>
             </Row>
-            <Row style={{marginTop:12}}>
+            <Row style={{ marginTop: 12 }}>
               <input
-                value={tripId}
-                onChange={e=>setTripId(e.target.value)}
-                placeholder="TRIP ID"
-                style={{flex:1, padding:'10px 12px', border:'1px solid #e5e7eb', borderRadius:12}}
+                value={bookTitle}
+                onChange={(e) => setBookTitle(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleStart()}
+                placeholder="책 제목을 입력하세요"
+                style={{
+                  flex: 1,
+                  padding: '10px 12px',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: 12,
+                  outline: 'none',
+                }}
               />
               <button
-                onClick={()=> nav(`/diary/trip/${encodeURIComponent(tripId)}/plan`)}
-                style={{marginLeft:8, padding:'10px 14px', borderRadius:12, background:'#6366f1', color:'#fff', border:'none'}}
-              >시작하기</button>
+                onClick={handleStart}
+                disabled={!bookTitle.trim()}
+                style={{
+                  marginLeft: 8,
+                  padding: '10px 14px',
+                  borderRadius: 12,
+                  background: bookTitle.trim() ? '#6366f1' : '#c7d2fe',
+                  color: '#fff',
+                  border: 'none',
+                  cursor: bookTitle.trim() ? 'pointer' : 'not-allowed',
+                }}
+              >
+                시작하기
+              </button>
             </Row>
-            <Muted style={{marginTop:8}}>버튼을 누르면 /diary/trip/ID 화면으로 이동해 일정 계획 · 일기 작성 · 타임라인을 함께 봅니다.</Muted>
+            <Muted style={{ marginTop: 8 }}>
+              책 제목을 입력하고 시작하기를 누르면 /diary/trip/ID/plan 페이지로 이동합니다.
+            </Muted>
           </Card>
 
           <Card>
@@ -122,7 +153,7 @@ export default function TravelDiary() {
           <StatCard><h3>{Math.round((collected/collections.length)*100)}%</h3><span>달성률</span></StatCard>
         </Grid3>
 
-        {/* 수집 카드 그리드 */}
+        {/* 수집 카드 그리드 ) */}
         <CollectionGrid>
           {collections.map(c=>(
             <PlaceCard key={c.id} active={c.collected}>
