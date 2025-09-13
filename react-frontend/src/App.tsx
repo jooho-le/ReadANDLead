@@ -17,7 +17,9 @@ import Neighbors from './pages/Neighbors';
 import NeighborPostPage from './pages/NeighborPost';
 import NeighborCompose from './pages/NeighborCompose';
 import PlaceToBook from './pages/PlaceToBook';
-import DiaryTripLayout from "./pages/DiaryTripPage";
+
+// 여행 일기 상세
+import DiaryTripLayout, { PlanPanel, ItineraryPanel, JournalPanel } from "./pages/DiaryTripPage";
 
 const Main = styled.main`
   min-height: 100vh;
@@ -37,7 +39,13 @@ export default function App() {
           <Route path="/diary" element={<TravelDiary />} />
           <Route path="/four-cut" element={<FourCutCreator />} />
           <Route path="/literary-scrap" element={<LiteraryTripScrap />} />
-          <Route path="/diary/trip/:id/plan" element={<DiaryTripLayout />} />
+
+          {/* ✅ 여행 일기 상세 (중첩 라우트) */}
+          <Route path="/diary/trip/:id" element={<DiaryTripLayout />}>
+            <Route path="plan" element={<PlanPanel />} />
+            <Route path="itinerary" element={<ItineraryPanel />} />
+            <Route path="journal" element={<JournalPanel />} />
+          </Route>
 
           {/* ✅ 'new'는 :id보다 먼저 선언해야 함 */}
           <Route path="/neighbors/new" element={<NeighborCompose />} />

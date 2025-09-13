@@ -1,4 +1,3 @@
-// src/api/diary.ts
 import { apiFetch } from "./config";
 
 export type DiaryEntry = {
@@ -85,5 +84,47 @@ export async function deleteDiary(
       entryId
     )}`,
     { method: "DELETE" }
+  );
+}
+
+// -------------------- 여행 일정 (GPT 기반) --------------------
+
+export type StopItem = {
+  time?: string | null;
+  title: string;
+  place?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  notes?: string | null;
+  mission?: string | null;
+};
+
+export type DayPlan = {
+  day: number;
+  theme?: string | null;
+  stops: StopItem[];
+};
+
+export type TravelPlan = {
+  summary: string;
+  days: DayPlan[];
+};
+
+/** GPT 여행 계획 생성 */
+export async function generatePlan(
+  tripId: string,
+  payload: {
+    bookTitle: string;
+    travelers: number;
+    days: number;
+    theme?: string;
+  }
+): Promise<TravelPlan> {
+  return apiFetch<TravelPlan>(
+    `/api/trips/${encodeURIComponent(tripId)}/plan`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
   );
 }

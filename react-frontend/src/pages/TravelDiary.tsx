@@ -72,7 +72,8 @@ export default function TravelDiary() {
       typeof crypto !== 'undefined' && (crypto as any).randomUUID
         ? (crypto as any).randomUUID()
         : `trip_${Date.now().toString(36)}`;
-    const qs = new URLSearchParams({ title }).toString();
+    // ✅ 쿼리 파라미터를 book=... 으로 맞춤
+    const qs = new URLSearchParams({ book: title }).toString();
     nav(`/diary/trip/${encodeURIComponent(id)}/plan?${qs}`);
   };
 
@@ -153,7 +154,7 @@ export default function TravelDiary() {
           <StatCard><h3>{Math.round((collected/collections.length)*100)}%</h3><span>달성률</span></StatCard>
         </Grid3>
 
-        {/* 수집 카드 그리드 ) */}
+        {/* 수집 카드 그리드 */}
         <CollectionGrid>
           {collections.map(c=>(
             <PlaceCard key={c.id} active={c.collected}>

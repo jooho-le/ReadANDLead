@@ -1,15 +1,14 @@
 // 여행일기 탭 - 여행 계획 세우기에서 ID 입력 후 시작하기 버튼 누르면 나오는 페이지
 
-import { NavLink, Outlet, useParams } from 'react-router-dom';
+import { NavLink, Outlet, useParams, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
-import { useLocation } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { StopPlanner } from '../components/StopPlanner';
 import { DiaryComposer } from '../components/diary/DiaryComposer';
 import { DiaryTimeline } from '../components/diary/DiaryTimeline';
 
 import { listStops, type Stop } from '../api/trips';
-import { createDiary } from '../api/diary';
+import { createDiary, generatePlan, type TravelPlan } from '../api/diary';
 import { Card, SectionTitle, Row, Button, Input, Textarea } from '../components/ui';
 
 const Wrap = styled.div`display:grid; gap:16px;`;
@@ -19,7 +18,6 @@ const Tabs = styled.div`
   a.active{ background:#ffffff; border:1px solid #e5e7eb; border-bottom-color:transparent; color:#111827; }
 `;
 
-
 /* ---------------- Layout ---------------- */
 
 export default function DiaryTripLayout() {
@@ -27,7 +25,6 @@ export default function DiaryTripLayout() {
   if (!id) return <div>잘못된 접근(Trip ID 없음)</div>;
   return (
     <Wrap>
-
       <Tabs>
         <NavLink to="plan" end className={({isActive})=>isActive?'active':''}>일정 계획</NavLink>
         <NavLink to="itinerary" className={({isActive})=>isActive?'active':''}>여행 일정</NavLink>
@@ -38,18 +35,115 @@ export default function DiaryTripLayout() {
   );
 }
 
+/* ---------------- Plan Form (GPT 여행 계획 생성) ---------------- */
+
+function PlanForm({ tripId }: { tripId: string }) {
+  const location = useLocation();
+  const qs = new URLSearchParams(location.search);
+  const initialBook = qs.get("book") || "";
+
+  const [bookTitle, setBookTitle] = useState(initialBook);
+  const [travelers, setTravelers] = useState(2);
+  const [days, setDays] = useState(2);
+  const [theme, setTheme] = useState("역사 체험");
+
+  const [loading, setLoading] = useState(false);
+  const [plan, setPlan] = useState<TravelPlan | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await generatePlan(tripId, { bookTitle, travelers, days, theme });
+      setPlan(res);
+    } catch (err: any) {
+      setError(err?.message || "일정 생성 실패");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Card>
+      <SectionTitle>책 기반 일정 계획 만들기</SectionTitle>
+      <form onSubmit={onSubmit} style={{ display: 'grid', gap: 12 }}>
+        <Row gap={12}>
+          <div style={{ flex: 2 }}>
+            <div style={{ fontSize: 12, color: '#6b7280' }}>책 제목</div>
+            <Input value={bookTitle} onChange={e=>setBookTitle(e.target.value)} placeholder="예) 난쟁이가 쏘아올린 작은 공" required />
+          </div>
+          <div>
+            <div style={{ fontSize: 12, color: '#6b7280' }}>인원</div>
+            <Input type="number" min={1} value={travelers} onChange={e=>setTravelers(Number(e.target.value)||1)} />
+          </div>
+          <div>
+            <div style={{ fontSize: 12, color: '#6b7280' }}>기간(일)</div>
+            <Input type="number" min={1} value={days} onChange={e=>setDays(Number(e.target.value)||1)} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12, color: '#6b7280' }}>테마</div>
+            <Input value={theme} onChange={e=>setTheme(e.target.value)} placeholder="예) 역사 체험 / 문학 산책" />
+          </div>
+        </Row>
+        <Row gap={12}>
+          <Button type="submit" disabled={loading}>{loading ? "생성 중..." : "계획 생성"}</Button>
+        </Row>
+        {error && <div style={{ color: '#ef4444' }}>{error}</div>}
+      </form>
+
+      {plan && (
+        <div style={{ marginTop: 16, display: 'grid', gap: 12 }}>
+          <Card>
+            <div style={{ fontWeight: 700, marginBottom: 8 }}>요약</div>
+            <div style={{ color: '#374151', whiteSpace: 'pre-wrap' }}>{plan.summary}</div>
+          </Card>
+
+          {plan.days.map(d => (
+            <Card key={d.day}>
+              <div style={{ fontWeight: 700, marginBottom: 8 }}>
+                Day {d.day} {d.theme ? `· ${d.theme}` : ""}
+              </div>
+              <div style={{ display: 'grid', gap: 6 }}>
+                {d.stops.map((s, i) => (
+                  <div key={i} style={{ display:'flex', flexDirection:'column', gap:4 }}>
+                    <div style={{ display:'flex', gap:8, alignItems:'baseline' }}>
+                      <div style={{ width: 60, color:'#6b7280' }}>{s.time || ""}</div>
+                      <div style={{ fontWeight: 600 }}>{s.title}</div>
+                      {s.place && <div style={{ color:'#6b7280' }}>· {s.place}</div>}
+                      {s.notes && <div style={{ color:'#9ca3af' }}>— {s.notes}</div>}
+                    </div>
+                    {s.mission && (
+                      <div style={{ color:'#10b981', marginLeft: '68px' }}>
+                        🎯 미션: {s.mission}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
 /* ---------------- Panels ---------------- */
 
 export function PlanPanel() {
   const { id } = useParams<{ id: string }>();
   return (
     <div style={{ display: 'grid', gap: 12 }}>
+      {/* ✅ GPT 여행 계획 폼 */}
+      <PlanForm tripId={id!} />
 
+      {/* 기존 수동 일정 관리 UI */}
       <StopPlanner tripId={id!} onAdded={() => { /* 필요시 토스트 */ }} />
     </div>
   );
 }
-
 
 export function JournalPanel() {
   const { id } = useParams<{ id: string }>();
@@ -72,7 +166,6 @@ function groupByDate(stops: Stop[]) {
     const key = s.date || '날짜 미정';
     (map[key] ??= []).push(s);
   }
-  // 날짜 오름차순 + 같은 날은 시간 오름차순
   Object.values(map).forEach(arr =>
     arr.sort((a,b) => (a.startTime||'') < (b.startTime||'') ? -1 : 1)
   );
