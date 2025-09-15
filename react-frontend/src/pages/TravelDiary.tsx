@@ -69,11 +69,12 @@ export default function TravelDiary() {
     const title = bookTitle.trim();
     if (!title) return;
     const id =
-    typeof crypto !== "undefined" && (crypto as any).randomUUID
-      ? (crypto as any).randomUUID()
-      : `trip_${Date.now().toString(36)}`;
-
-  nav(`/book-trip/${id}?title=${encodeURIComponent(title)}`);
+      typeof crypto !== 'undefined' && (crypto as any).randomUUID
+        ? (crypto as any).randomUUID()
+        : `trip_${Date.now().toString(36)}`;
+    // ✅ 쿼리 파라미터를 book=... 으로 맞춤
+    const qs = new URLSearchParams({ book: title }).toString();
+    nav(`/diary/trip/${encodeURIComponent(id)}/plan?${qs}`);
   };
 
   // 데모 데이터(원래 있던 카드 레이아웃)
@@ -129,7 +130,7 @@ export default function TravelDiary() {
               </button>
             </Row>
             <Muted style={{ marginTop: 8 }}>
-              책 제목을 입력하고 시작하기를 누르면 /book-trip 페이지로 이동합니다.
+              책 제목을 입력하고 시작하기를 누르면 /diary/trip/ID/plan 페이지로 이동합니다.
             </Muted>
           </Card>
 
@@ -153,7 +154,7 @@ export default function TravelDiary() {
           <StatCard><h3>{Math.round((collected/collections.length)*100)}%</h3><span>달성률</span></StatCard>
         </Grid3>
 
-        {/* 수집 카드 그리드 ) */}
+        {/* 수집 카드 그리드 */}
         <CollectionGrid>
           {collections.map(c=>(
             <PlaceCard key={c.id} active={c.collected}>

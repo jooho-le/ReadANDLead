@@ -28,11 +28,6 @@ react-frontend/.eslintcache
 react-frontend/.parcel-cache/
 react-frontend/dist/
 react-frontend/build/
-react-frontend/android/app/src/main/assets/public/
-react-frontend/android/app/build/
-react-frontend/android.bak*/
-*.keystore
-*.jks
 
 # ===== Environment / Secrets =====
 .env
@@ -127,3 +122,13 @@ server/uploads/**
 # --- IDE/툴
 .vscode/
 .idea/
+
+# 루트 node_modules 전체 무시
+node_modules/
+
+# React Native/Android 산출물 통째로 무시
+react-frontend/android/
+
+# 서버 업로드 파일 무시(정적 업로드 경로)
+server/app/static/uploads/**
+!server/app/static/uploads/.gitkeep
