@@ -74,3 +74,39 @@ export const addStop = (
 /** 특정 여행의 경유지 목록 */
 export const listStops = (tripId: string): Promise<Stop[]> =>
   apiFetch<Stop[]>(`/api/trips/${tripId}/stops`);
+
+export interface StopItem {
+  time?: string;
+  title: string;
+  notes?: string;
+  mission?: string;
+
+  // Kakao Places로 확정된 필드 (백엔드가 채워줌)
+  place?: string;
+  address?: string;
+  phone?: string;
+  url?: string;
+  hours?: string;
+  source?: string;
+  place_id?: string;
+  lat?: number;
+  lng?: number;
+}
+
+// react-frontend/src/api/trips.ts
+export type PlanInput = {
+  bookTitle: string;
+  travelers: number;
+  days: number;
+  theme: string;
+};
+
+export async function createTripPlan(tripId: string, payload: PlanInput){
+  const res = await fetch(`/api/trips/${tripId}/plan`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  });
+  if(!res.ok) throw new Error('failed to create plan');
+  return res.json(); // { summary, days:[{ day, stops:[{place,address,lat,lng,url,...}]}] }
+}
