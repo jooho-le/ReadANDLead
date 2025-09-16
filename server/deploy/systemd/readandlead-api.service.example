@@ -1,0 +1,17 @@
+[Unit]
+Description=Read&Lead FastAPI (Gunicorn)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/readandlead
+EnvironmentFile=/opt/readandlead/server/.env
+ExecStart=/usr/bin/env bash -lc 'cd server && ./run_gunicorn.sh 127.0.0.1:8000'
+Restart=on-failure
+RestartSec=5
+User=www-data
+Group=www-data
+
+[Install]
+WantedBy=multi-user.target
+

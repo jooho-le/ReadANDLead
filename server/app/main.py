@@ -17,13 +17,37 @@ print("OPENAI_API_KEY:", os.getenv("OPENAI_API_KEY"))
 
 app = FastAPI(title="Read&Lead API")
 
+# CORS: 배포/앱 환경에 맞게 환경변수로 제어
+# ALLOWED_ORIGINS=콤마로_구분된_오리진들 (예: "https://web.example.com,http://localhost")
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "").strip()
+if allowed_origins_env:
+    allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
+else:
+    # 기본값: 로컬 웹, Capacitor WebView(http://localhost)
+    allowed_origins = [
+        "http://localhost",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Simple request logger to diagnose method/path issues during auth
+@app.middleware("http")
+async def _log_some_requests(request, call_next):
+    try:
+        p = request.url.path
+        if p.startswith("/api/auth"):
+            print(f"[AUTH] {request.method} {p}")
+    except Exception:
+        pass
+    return await call_next(request)
 
 # ✅ 이웃 글
 app.include_router(posts.router, prefix="/api/neighbor-posts", tags=["neighbor-posts"])
@@ -44,4 +68,3 @@ def ping():
     return {"ok": True}
 
 app.include_router(trips_router.router, prefix="/api/trips", tags=["trips"])
-

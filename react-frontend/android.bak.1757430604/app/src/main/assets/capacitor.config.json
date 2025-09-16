@@ -1,0 +1,9 @@
+{
+	"appId": "com.readandlead.app",
+	"appName": "Read & Lead",
+	"webDir": "build",
+	"bundledWebRuntime": false,
+	"server": {
+		"androidScheme": "https"
+	}
+}
