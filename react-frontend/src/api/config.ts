@@ -2,10 +2,30 @@
 // 공통 설정 + fetch 래퍼 + 엔드포인트 모음
 
 // 환경변수 → Vite/CRA 둘 다 케어, 기본은 127.0.0.1:8000
-export const API_BASE_URL: string =
-  (typeof import.meta !== "undefined" && (import.meta as any)?.env?.VITE_API_URL) ||
-  (typeof process !== "undefined" && (process.env as any)?.REACT_APP_API_URL) ||
-  "http://127.0.0.1:8000";
+import { Capacitor } from "@capacitor/core";
+
+function resolveBase(): string {
+  const envUrl =
+    (typeof import.meta !== "undefined" && (import.meta as any)?.env?.VITE_API_URL) ||
+    (typeof process !== "undefined" && (process.env as any)?.REACT_APP_API_URL) ||
+    "";
+
+  let base = envUrl || "http://127.0.0.1:8000";
+
+  // Emulator helper: if base points to localhost and platform is android, rewrite to 10.0.2.2
+  try {
+    const platform = Capacitor?.getPlatform?.();
+    if (platform === "android") {
+      if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(base)) {
+        base = base.replace(/^(https?:\/\/)(localhost|127\.0\.0\.1)/i, "$1" + "10.0.2.2");
+      }
+    }
+  } catch {}
+
+  return base;
+}
+
+export const API_BASE_URL: string = resolveBase();
 
 // 상대경로/절대경로 모두 지원
 export function apiUrl(path: string): string {
@@ -47,6 +67,14 @@ export async function apiFetch<T = any>(
   if (token && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${token}`);
   }
+
+  const method = (init.method || "GET").toUpperCase();
+  try {
+    if (typeof localStorage !== "undefined" && localStorage.getItem("DEBUG_API") === "1") {
+      // eslint-disable-next-line no-console
+      console.debug(`[api] ${method} ${url}`);
+    }
+  } catch {}
 
   const res = await fetch(url, {
     ...init,

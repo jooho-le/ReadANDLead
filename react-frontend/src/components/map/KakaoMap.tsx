@@ -14,11 +14,20 @@ const KakaoMap: React.FC<Props> = ({ center, level = 5, className, onReady }) =>
 
   useEffect(() => {
     (async () => {
-      await loadKakaoSdk();
-      if (!ref.current) return;
-      const m = createMap(ref.current, center, level);
-      setMap(m);
-      onReady?.(m);
+      try {
+        await loadKakaoSdk();
+        if (!ref.current) return;
+        const m = createMap(ref.current, center, level);
+        setMap(m);
+        onReady?.(m);
+      } catch (e) {
+        try {
+          if (typeof localStorage !== 'undefined' && localStorage.getItem('DEBUG_MAP') === '1') {
+            // eslint-disable-next-line no-console
+            console.error('[KakaoMap] SDK 초기화 실패:', e);
+          }
+        } catch {}
+      }
     })();
   }, []);
 

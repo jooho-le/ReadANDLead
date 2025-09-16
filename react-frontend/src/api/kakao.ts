@@ -6,14 +6,31 @@ let kakaoLoaded: Promise<void> | null = null;
 export async function loadKakaoSdk() {
   if (kakaoLoaded) return kakaoLoaded;
   const key = process.env.REACT_APP_KAKAO_JS_KEY;
-  if (!key) throw new Error('REACT_APP_KAKAO_JS_KEY 가 필요합니다');
+  if (!key) {
+    // 디버깅 도움: 빌드 타임에 키 미주입된 경우
+    try {
+      if (typeof localStorage !== 'undefined' && localStorage.getItem('DEBUG_MAP') === '1') {
+        // eslint-disable-next-line no-console
+        console.error('[kakao] REACT_APP_KAKAO_JS_KEY 가 빌드 시 주입되지 않았습니다 (.env.production 확인)');
+      }
+    } catch {}
+    throw new Error('REACT_APP_KAKAO_JS_KEY 가 필요합니다');
+  }
 
   kakaoLoaded = new Promise<void>((resolve, reject) => {
     if (window.kakao && window.kakao.maps) return resolve();
     const s = document.createElement('script');
     s.async = true;
     s.src = KAKAO_SRC(key);
-    s.onerror = () => reject(new Error('Kakao SDK 로드 실패'));
+    s.onerror = () => {
+      try {
+        if (typeof localStorage !== 'undefined' && localStorage.getItem('DEBUG_MAP') === '1') {
+          // eslint-disable-next-line no-console
+          console.error('[kakao] SDK 스크립트 로드 실패. 도메인 허용(http://localhost) 및 JS 키 확인');
+        }
+      } catch {}
+      reject(new Error('Kakao SDK 로드 실패'));
+    };
     s.onload = () => {
       window.kakao.maps.load(() => resolve());
     };
