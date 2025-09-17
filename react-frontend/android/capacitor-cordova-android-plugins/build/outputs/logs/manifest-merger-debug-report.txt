@@ -10,8 +10,6 @@ INJECTED from /Users/leejooho/Desktop/ReadANDLead-main/react-frontend/android/ca
 		ADDED from /Users/leejooho/Desktop/ReadANDLead-main/react-frontend/android/capacitor-cordova-android-plugins/src/main/AndroidManifest.xml:2:11-69
 application
 ADDED from /Users/leejooho/Desktop/ReadANDLead-main/react-frontend/android/capacitor-cordova-android-plugins/src/main/AndroidManifest.xml:4:1-6:15
-	android:usesCleartextTraffic
-		ADDED from /Users/leejooho/Desktop/ReadANDLead-main/react-frontend/android/capacitor-cordova-android-plugins/src/main/AndroidManifest.xml:4:15-50
 uses-sdk
 INJECTED from /Users/leejooho/Desktop/ReadANDLead-main/react-frontend/android/capacitor-cordova-android-plugins/src/main/AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from /Users/leejooho/Desktop/ReadANDLead-main/react-frontend/android/capacitor-cordova-android-plugins/src/main/AndroidManifest.xml

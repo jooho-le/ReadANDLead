@@ -11,6 +11,7 @@ import {
 } from 'react-icons/fa';
 import type { IconType, IconBaseProps } from 'react-icons';
 import { createPortal } from 'react-dom';
+import { Capacitor } from '@capacitor/core';
 
 // ✅ 올바른 경로(components → api) : 한 단계만 올라가면 됩니다.
 import { register, login, me } from '../api/auth';
@@ -29,6 +30,44 @@ const HeaderContainer = styled.header`
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   z-index: 1000;
   padding: 0 20px;
+`;
+
+/* 네이티브 앱(안드/아이폰)에서는 좌측 사이드 레일 레이아웃 */
+const Rail = styled.aside`
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: 72px;
+  background: #ffffffdd;
+  backdrop-filter: blur(8px);
+  border-right: 1px solid rgba(0,0,0,0.06);
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 8px;
+  gap: 6px;
+`;
+
+const RailLogo = styled(Link)`
+  display: flex; align-items: center; justify-content: center;
+  width: 48px; height: 48px; border-radius: 12px;
+  color: #667eea; text-decoration: none; font-weight: 800;
+  border: 1px solid #e9e9f5; background: #f7f8ff;
+`;
+
+const RailBtn = styled(Link)<{ $active?: boolean }>`
+  width: 48px; height: 48px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  color: ${(p) => (p.$active ? '#667eea' : '#666')};
+  background: ${(p) => (p.$active ? 'rgba(102,126,234,0.12)' : 'transparent')};
+  border: 1px solid ${(p) => (p.$active ? '#ccd3ff' : 'transparent')};
+  text-decoration: none;
+`;
+
+const RailSpacer = styled.div` flex: 1 1 auto; `;
+const RailLogout = styled.button`
+  width: 48px; height: 36px; border-radius: 10px;
+  border: 1px solid #eee; background: #fff; color:#555; font-weight:700;
 `;
 
 const Nav = styled.nav`
@@ -305,6 +344,14 @@ export default function Header() {
     { path: '/my', label: '마이페이지', icon: () => iconEl(FaBookOpen) },
   ];
 
+  const isNative = (() => {
+    try {
+      if ((Capacitor as any)?.isNativePlatform?.()) return true;
+      const p = (Capacitor as any)?.getPlatform?.();
+      return p === 'android' || p === 'ios';
+    } catch { return false; }
+  })();
+
   function doLogout() {
     localStorage.removeItem('token');
     setToken(null);
@@ -351,6 +398,68 @@ export default function Header() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  // 네이티브 앱이면 좌측 레일을 렌더링 (웹은 기존 헤더 유지)
+  if (isNative) {
+    return (
+      <Rail>
+        <RailLogo to="/">{iconEl(FaBook)}</RailLogo>
+        {navItems.map((item) => (
+          <RailBtn
+            key={item.path}
+            to={item.path}
+            $active={location.pathname === item.path}
+            title={item.label}
+          >
+            {item.icon()}
+          </RailBtn>
+        ))}
+        <RailSpacer />
+        {!profile ? (
+          <RailBtn to="#" onClick={(e)=>{ e.preventDefault(); setMode('login'); setShowModal(true); }} title="로그인">
+            {iconEl(FaSignInAlt)}
+          </RailBtn>
+        ) : (
+          <RailLogout onClick={doLogout}>out</RailLogout>
+        )}
+
+        {showModal && (
+          <Portal>
+            <Backdrop onClick={() => setShowModal(false)}>
+              <Modal onClick={(e) => e.stopPropagation()}>
+                <ModalTitle>{mode === 'login' ? '로그인' : '회원가입'}</ModalTitle>
+                <Row style={{ justifyContent: 'flex-start' }}>
+                  <Button type="button" $primary={mode==='login'} onClick={()=>setMode('login')}>로그인</Button>
+                  <Button type="button" $primary={mode==='register'} onClick={()=>setMode('register')}>가입하기</Button>
+                </Row>
+                <Form onSubmit={handleAuth}>
+                  <Label>
+                    이메일
+                    <Input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} required placeholder="you@example.com" />
+                  </Label>
+                  {mode==='register' && (
+                    <Label>
+                      표시 이름(선택)
+                      <Input value={displayName} onChange={(e)=>setDisplayName(e.target.value)} placeholder="프로필에 보일 이름" />
+                    </Label>
+                  )}
+                  <Label>
+                    비밀번호
+                    <Input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} required placeholder="••••••••" />
+                  </Label>
+                  {errMsg && <ErrorText>{errMsg}</ErrorText>}
+                  <Row>
+                    <Button type="button" onClick={()=>setShowModal(false)}>취소</Button>
+                    <Button type="submit" $primary disabled={submitting}>{submitting ? '처리중…' : (mode==='login' ? '로그인' : '가입하기')}</Button>
+                  </Row>
+                </Form>
+              </Modal>
+            </Backdrop>
+          </Portal>
+        )}
+      </Rail>
+    );
   }
 
   return (
