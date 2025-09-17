@@ -25,7 +25,17 @@ const IS_PROD: boolean =
   process.env.NODE_ENV === "production";
 
 function resolveBase(): string {
-  const envUrl = VITE_API ?? CRA_API ?? CRA_API_BASE ?? "";
+  // If running on vercel.app (production/preview), force the Render API unless an env overrides it
+  let hostHint = "";
+  try {
+    const h = typeof window !== "undefined" ? window.location.hostname : "";
+    if (h && !/^localhost$|^127\.0\.0\.1$/.test(h)) {
+      // any hosted domain (vercel.app or custom) should hit the cloud API
+      hostHint = "https://readandlead-api.onrender.com";
+    }
+  } catch {}
+
+  const envUrl = hostHint || VITE_API ?? CRA_API ?? CRA_API_BASE ?? "";
 
   // 기본값: 개발은 로컬, 프로덕션은 Render 공개 URL
   let base = envUrl || (IS_PROD ? "https://readandlead-api.onrender.com" : "http://127.0.0.1:8000");
