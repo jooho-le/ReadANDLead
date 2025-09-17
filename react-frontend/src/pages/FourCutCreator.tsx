@@ -11,7 +11,7 @@ const Page = styled.div`
 `;
 
 const Container = styled.div`
-  max-width: 1200px; margin: 0 auto;
+  max-width: 85%; margin: 0 auto;
 `;
 
 const Title = styled.h1`
@@ -32,15 +32,17 @@ const Card = styled.div`
 
 const SectionTitle = styled.h2` font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; `;
 const Input = styled.input`
-  width: 100%; padding: 12px 14px; border: 2px solid #e1e5e9; border-radius: 10px;
-  &:focus{ outline: none; border-color: #667eea; }
+  width: 100%;   max-width: 420px;  padding: 12px 14px; border: 2px solid #e1e5e9; border-radius: 10px;
+  box-sizing: border-box; 
+  &:focus{ outline: none; border-color: #667eea;}
 `;
 const Textarea = styled.textarea`
-  width: 100%; padding: 12px 14px; border: 2px solid #e1e5e9; border-radius: 10px; min-height: 80px;
-  &:focus{ outline: none; border-color: #667eea; }
+  width: 100%;   max-width: 420px; padding: 12px 14px; border: 2px solid #e1e5e9; border-radius: 10px; min-height: 80px;
+  box-sizing: border-box; 
+  &:focus{ outline: none; border-color: #667eea;}
 `;
 const Select = styled.select`
-  width: 100%; padding: 12px 14px; border: 2px solid #e1e5e9; border-radius: 10px;
+  width: 100%;   max-width: 420px; padding: 12px 14px; border: 2px solid #e1e5e9; border-radius: 10px;
   &:focus{ outline: none; border-color: #667eea; }
 `;
 const Button = styled.button<{variant?: 'primary'|'ghost'}>`
@@ -70,7 +72,7 @@ const TemplateBtn = styled.button<{active?: boolean}>`
   background: #fff; font-weight: 600;
 `;
 
-const Row = styled.div` display: grid; grid-template-columns: 1fr 1fr; gap: 8px; `;
+const Row = styled.div` display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; `;
 
 const templates: { key: FourCutTemplate; label: string }[] = [
   { key: '2x2', label: '2x2 네컷' },
@@ -162,16 +164,18 @@ export default function FourCutCreator() {
             </Select>
 
             <div style={{height:8}} />
-            <Textarea placeholder="직접 문장을 입력하세요" value={manualQuote} onChange={e=>setManualQuote(e.target.value)} />
+            <Textarea placeholder="직접 문장을 입력하세요" value={manualQuote} onChange={e=>setManualQuote(e.target.value)}/>
             <div style={{height:8}} />
             <Row>
-              <Input placeholder="책 제목" value={bookTitle} onChange={e=>setBookTitle(e.target.value)} />
-              <Input placeholder="저자" value={author} onChange={e=>setAuthor(e.target.value)} />
+              <Input placeholder="책 제목" value={bookTitle} onChange={e=>setBookTitle(e.target.value)}
+                 style={{ width: '90%' }} />
+              <Input placeholder="저자" value={author} onChange={e=>setAuthor(e.target.value)}
+                 style={{ width: '90%' }}/>
             </Row>
 
             <div style={{height:16}} />
             <SectionTitle>사진 선택 (최대 4장)</SectionTitle>
-            <Input as="input" type="file" accept="image/*" multiple onChange={e=>onPickPhotos((e.target as HTMLInputElement).files)} />
+            <Input as="input" type="file" accept="image/*" multiple onChange={e=>onPickPhotos((e.target as HTMLInputElement).files)}/>
             <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8, marginTop:8}}>
               {photos.map(p=>(
                 <div key={p.id} style={{position:'relative'}}>
@@ -194,9 +198,9 @@ export default function FourCutCreator() {
 
             <div style={{height:16}} />
             <SectionTitle>메타 & 해시태그</SectionTitle>
-            <Input placeholder="촬영 장소" value={locationName} onChange={e=>setLocationName(e.target.value)} />
+            <Input placeholder="촬영 장소" value={locationName} onChange={e=>setLocationName(e.target.value)}/>
             <div style={{height:8}} />
-            <Input placeholder="#태그1 #태그2 (공백/쉼표 구분)" onBlur={(e)=>setHashtags((e.target as HTMLInputElement).value.split(/[\s,]+/).filter(Boolean))} />
+            <Input placeholder="#태그1 #태그2 (공백/쉼표 구분)" onBlur={(e)=>setHashtags((e.target as HTMLInputElement).value.split(/[\s,]+/).filter(Boolean))}/>
             <p style={{fontSize:12, color:'#6b7280', marginTop:8}}>자동 해시태그: {generatedHashtags.join(' ')}</p>
           </Card>
 

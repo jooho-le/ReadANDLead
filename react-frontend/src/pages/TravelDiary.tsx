@@ -5,6 +5,11 @@ import bookLocationData from '../data/book_location_event.json';
 import RcIcon from '../components/RcIcon';
 import { FaRoute, FaTrophy } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import {
+  InputGroup,
+  StyledAutoInput,
+  StyledSubmitButton,
+} from '../components/ui';
 
 const Page = styled.div`
   min-height: 100vh;
@@ -23,13 +28,13 @@ const Title = styled.h1`
   color: #5b21b6;
   margin-bottom: 28px;
 `;
-const Grid3 = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3,minmax(0,1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-  @media (max-width: 960px){ grid-template-columns: 1fr; }
-`;
+// const Grid3 = styled.div`
+//   display: grid;
+//   grid-template-columns: repeat(3,minmax(0,1fr));
+//   gap: 16px;
+//   margin-bottom: 24px;
+//   @media (max-width: 960px){ grid-template-columns: 1fr; }
+// `;
 const Card = styled.div`
   background: #fff;
   border: 1px solid #e5e7eb;
@@ -43,11 +48,11 @@ const PlanCard = styled(Card)`
 const Row = styled.div`display:flex; align-items:center; gap:10px;`;
 const Muted = styled.div`color:#6b7280; font-size:12px;`;
 
-const StatCard = styled(Card)`
-  text-align:center;
-  h3{ font-size:32px; font-weight:800; color:#4f46e5; margin:6px 0; }
-  span{ color:#64748b; font-weight:600; }
-`;
+// const StatCard = styled(Card)`
+//   text-align:center;
+//   h3{ font-size:32px; font-weight:800; color:#4f46e5; margin:6px 0; }
+//   span{ color:#64748b; font-weight:600; }
+// `;
 
 // 상단은 단일 카드, 배지는 하단 전체 폭으로 표시
 
@@ -137,33 +142,25 @@ export default function TravelDiary() {
                     <b style={{ fontSize: 22 }}>여행 계획 세우기</b>
                   </Row>
                 </Row>
-                <Row style={{ marginTop: 12 }}>
-                  <div style={{flex:1}}>
-                    <AutocompleteInput
+                <Row style={{ marginTop: 12, width: '100%' }}>
+                  <InputGroup style={{ width: '97%' }}>
+                    <StyledAutoInput
                       value={bookTitle}
                       onChange={setBookTitle}
                       placeholder="책 제목을 입력하세요 (예: 소년이 온다)"
                       fetchSuggestions={fetchBookSuggestions}
                       onSelect={(s)=>setBookTitle(s.label)}
                     />
-                  </div>
-                  <button
-                    onClick={handleStart}
-                    disabled={!bookTitle.trim()}
-                    style={{
-                      marginLeft: 8,
-                      padding: '14px 22px',
-                      borderRadius: 14,
-                      background: bookTitle.trim() ? '#6366f1' : '#c7d2fe',
-                      color: '#fff',
-                      border: 'none',
-                      cursor: bookTitle.trim() ? 'pointer' : 'not-allowed',
-                      fontSize: 16,
-                    }}
-                  >
-                    시작하기
-                  </button>
+                    <StyledSubmitButton
+                      onClick={handleStart}
+                      type="button"
+                      disabled={!bookTitle.trim()}
+                    >
+                      시작하기
+                    </StyledSubmitButton>
+                  </InputGroup>
                 </Row>
+
                 <Muted style={{ marginTop: 8 }}>
                   책 제목을 입력하고 시작하기를 누르면 여행 루트 추천 페이지로 이동합니다.
                 </Muted>

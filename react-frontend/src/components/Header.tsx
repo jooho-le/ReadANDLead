@@ -32,7 +32,7 @@ const HeaderContainer = styled.header`
 `;
 
 const Nav = styled.nav`
-  max-width: 1200px;
+  max-width: 100%;
   margin: 0 auto;
   display: grid;
   grid-template-columns: auto 1fr auto; /* 좌측 로고 / 가운데 메뉴 / 우측 인증 */
@@ -52,6 +52,7 @@ const Logo = styled(Link)`
   display: inline-flex;
   flex-direction: row;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   font-size: 1.8rem;
   font-weight: 700;
@@ -93,10 +94,13 @@ const NavLink = styled(Link)<{ $active: boolean }>`
   white-space: nowrap;
   color: ${(p) => (p.$active ? '#667eea' : '#666')};
   background: ${(p) => (p.$active ? 'rgba(102,126,234,0.1)' : 'transparent')};
+  text-decoration: none; 
   &:hover {
+    
     color: #667eea;
     background: rgba(102,126,234,0.1);
     transform: translateY(-2px);
+    border-bottom: 2px solid #555
   }
 `;
 

@@ -3,18 +3,24 @@
 
 // 환경변수 → Vite/CRA 둘 다 케어, 기본은 127.0.0.1:8000
 import { Capacitor } from "@capacitor/core";
+// Vite (property access만 사용; Webpack 경고 회피)
+const VITE_API: string | undefined = (import.meta as any)?.env?.VITE_API_URL;
+
+// CRA (옵셔널 체이닝 절대 X, 대신 typeof 가드로 런타임 안전)
+const CRA_API: string | undefined =
+  typeof process !== "undefined" && process.env
+    ? (process.env.REACT_APP_API_URL as string | undefined)
+    : undefined;
 
 function resolveBase(): string {
-  const envUrl =
-    (typeof import.meta !== "undefined" && (import.meta as any)?.env?.VITE_API_URL) ||
-    (typeof process !== "undefined" && (process.env as any)?.REACT_APP_API_URL) ||
-    "";
+  const envUrl = VITE_API ?? CRA_API ?? "";
 
   let base = envUrl || "http://127.0.0.1:8000";
 
   // Emulator helper: if base points to localhost and platform is android, rewrite to 10.0.2.2
   try {
     const platform = Capacitor?.getPlatform?.();
+    const isNative = Capacitor?.isNativePlatform?.();
     if (platform === "android") {
       if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(base)) {
         base = base.replace(/^(https?:\/\/)(localhost|127\.0\.0\.1)/i, "$1" + "10.0.2.2");
