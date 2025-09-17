@@ -6,7 +6,18 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 # ============== OpenAI / Kakao Config ==============
-_client = OpenAI()  # OPENAI_API_KEY는 .env에서 자동 인식
+def _get_openai_client():
+    """지연 초기화: 환경변수 없을 때는 None 반환(서버 기동 실패 방지)."""
+    key = os.getenv("OPENAI_API_KEY")
+    if not key:
+        return None
+    try:
+        return OpenAI(api_key=key)
+    except Exception as e:
+        # 키가 잘못되었거나 초기화 실패 시 서버가 죽지 않도록 경고만 남김
+        print("WARN OpenAI init failed:", e)
+        return None
+
 KAKAO_KEY = os.getenv("KAKAO_REST_API_KEY")
 KAKAO_URL = "https://dapi.kakao.com/v2/local/search/keyword.json"
 print("DEBUG Init (keys exist):", bool(os.getenv("OPENAI_API_KEY")), bool(KAKAO_KEY))
@@ -509,6 +520,10 @@ PROMPT_DRAFT = """당신은 문학 여행 기획자이자 게이미피케이션 
 
 # ========================== LLM 호출(초안) ==========================
 def call_llm_for_draft(inp: PlanInput) -> dict:
+    client = _get_openai_client()
+    if client is None:
+        # 키가 없으면 상위에서 예외 처리하여 fallback 사용
+        raise RuntimeError("OPENAI_API_KEY missing; using fallback plan")
     # 책 컨텍스트/배경 힌트 주입
     book_ctx = fetch_book_context(inp.bookTitle)
     hints = extract_background_hints(book_ctx or "") or (guess_city_from_book(inp.bookTitle) or "") or "서울"
@@ -521,7 +536,7 @@ def call_llm_for_draft(inp: PlanInput) -> dict:
 
     # 1) strict JSON 모드
     try:
-        resp = _client.chat.completions.create(
+        resp = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "Return ONLY JSON. No markdown, no code fences, no commentary."},
@@ -537,7 +552,7 @@ def call_llm_for_draft(inp: PlanInput) -> dict:
         print("WARN json_object mode failed:", e)
 
     # 2) 일반 모드 → 강제 파싱
-    resp = _client.chat.completions.create(
+    resp = client.chat.completions.create(
         model="gpt-4o",
         messages=[
             {"role": "system", "content": "Return ONLY JSON. No markdown, no code fences, no commentary."},
