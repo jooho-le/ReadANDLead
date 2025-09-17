@@ -16,11 +16,11 @@ const SearchSection = styled.section`
 `;
 const SearchTitle = styled.h3`margin:0 0 12px;text-align:center;`;
 const SearchForm = styled.form`
-  display:flex;gap:8px;max-width:720px;margin:0 auto;
+  display:flex;align-items:center;gap:10px;max-width:720px;margin:0 auto;position:relative;
   @media (max-width:768px){flex-direction:column;}
 `;
 const Btn = styled.button`
-  padding:12px 18px;border:none;border-radius:999px;background:#5b7cfa;color:#fff;font-weight:700;cursor:pointer;
+  padding:12px 20px;border:none;border-radius:14px;background:#5b7cfa;color:#fff;font-weight:700;cursor:pointer;position:relative;z-index:1;
 `;
 const ResultList = styled.div`
   position: relative; /* 클릭 우선순위 확보 */

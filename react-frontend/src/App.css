@@ -36,3 +36,14 @@
     transform: rotate(360deg);
   }
 }
+/* Global sane defaults */
+* { box-sizing: border-box; }
+img { max-width: 100%; height: auto; display: block; }
+video, canvas { max-width: 100%; display: block; }
+input, select, textarea, button { font: inherit; }
+
+/* Prevent controls overlapping rounded inputs/buttons */
+.row, .flex-row { display: flex; align-items: center; gap: 8px; }
+
+/* Utility containers */
+.container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }

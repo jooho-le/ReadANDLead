@@ -24,9 +24,11 @@ const Wrap = styled.div`
 const Input = styled.input`
   width: 100%;
   border: 1px solid #ddd;
-  border-radius: 999px;
+  border-radius: 14px; /* 캡슐이 버튼을 덮지 않도록 완만한 라운드 */
   padding: 12px 16px;
   font-size: 16px;
+  position: relative;
+  z-index: 0;
 `;
 
 const List = styled.div`

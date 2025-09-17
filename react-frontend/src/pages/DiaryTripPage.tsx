@@ -4,11 +4,13 @@ import { NavLink, Outlet, useParams, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { useEffect, useMemo, useState } from 'react';
 import { StopPlanner } from '../components/StopPlanner';
-import { DiaryComposer } from '../components/diary/DiaryComposer';
-import { DiaryTimeline } from '../components/diary/DiaryTimeline';
+// 일기 기능은 현재 숨김 처리 (요청에 따라 제거)
 
 import { listStops, type Stop } from '../api/trips';
 import { createDiary, generatePlan, type TravelPlan } from '../api/diary';
+import { persistPlan, completeMission, getBookContext } from '../api/trips';
+import bookLocationData from '../data/book_location_event.json';
+import { apiUrl } from '../api/config';
 import { Card, SectionTitle, Row, Button, Input, Textarea } from '../components/ui';
 
 const Wrap = styled.div`display:grid; gap:16px;`;
@@ -27,8 +29,7 @@ export default function DiaryTripLayout() {
     <Wrap>
       <Tabs>
         <NavLink to="plan" end className={({isActive})=>isActive?'active':''}>일정 계획</NavLink>
-        <NavLink to="itinerary" className={({isActive})=>isActive?'active':''}>여행 일정</NavLink>
-        <NavLink to="journal" className={({isActive})=>isActive?'active':''}>여행 일기</NavLink>
+        <NavLink to="itinerary" className={({isActive})=>isActive?'active':''}>미션 인증하기</NavLink>
       </Tabs>
       <Outlet />
     </Wrap>
@@ -50,22 +51,65 @@ function PlanForm({ tripId }: { tripId: string }) {
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState<TravelPlan | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [ctxOpen, setCtxOpen] = useState(false);
+  const [ctxData, setCtxData] = useState<{title:string; author?:string; background?:string; content?:string; cover_url?:string} | null>(null);
+
+  // 초기 로드 시 저장된 계획 복구
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(`tripPlan:${tripId}`);
+      if (raw) setPlan(JSON.parse(raw));
+    } catch {}
+  }, [tripId]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
+      // 0) 책 컨텍스트 팝업 표시
+      try {
+        const ctx = await getBookContext(bookTitle);
+        // 로컬 데이터(book_location_event.json) 우선 사용: event/loc → content/background
+        let localContent: string | undefined;
+        let localBackground: string | undefined;
+        try {
+          const keys = Object.keys(bookLocationData as any);
+          const lower = bookTitle.trim().toLowerCase();
+          const hit = keys.find(k => k.toLowerCase().includes(lower) || lower.includes(k.toLowerCase()));
+          const arr:any = hit ? (bookLocationData as any)[hit] : undefined;
+          if (Array.isArray(arr) && arr[0]) {
+            localContent = arr[0].event;
+            localBackground = arr[0].location;
+          }
+        } catch {}
+        setCtxData({
+          title: ctx.title,
+          author: ctx.author,
+          background: localBackground || ctx.background,
+          content: localContent || ctx.content,
+          cover_url: ctx.cover_url,
+        });
+        setCtxOpen(true);
+      } catch {}
       const res = await generatePlan(tripId, { bookTitle, travelers, days, theme });
       setPlan(res);
+      // 서버에 영속 저장(Stop ID 부여)
+      const stopsForPersist = (res.days || []).map((d: any) => ({ day: d.day, stops: d.stops || [] }));
+      try { await persistPlan(tripId, { bookTitle, theme, days, stops: stopsForPersist }); } catch {}
+      // 로컬에도 보존(페이지 이동/새로고침 후 유지)
+      try { localStorage.setItem(`tripPlan:${tripId}`, JSON.stringify(res)); } catch {}
     } catch (err: any) {
       setError(err?.message || "일정 생성 실패");
     } finally {
       setLoading(false);
+      // 생성이 끝나면 모달 자동 닫기
+      setCtxOpen(false);
     }
   };
 
   return (
+    <>
     <Card>
       <SectionTitle>책 기반 일정 계획 만들기</SectionTitle>
       <form onSubmit={onSubmit} style={{ display: 'grid', gap: 12 }}>
@@ -126,7 +170,39 @@ function PlanForm({ tripId }: { tripId: string }) {
           ))}
         </div>
       )}
+      {plan && (
+        <Row gap={8}>
+          <Button
+            variant="ghost"
+            onClick={() => { try { localStorage.removeItem(`tripPlan:${tripId}`); } catch {}; setPlan(null); }}
+          >계획 비우기</Button>
+        </Row>
+      )}
     </Card>
+
+    {/* 책 컨텍스트 모달 (한 줄 요약) */}
+    {ctxOpen && (
+      <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,.45)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2000}} onClick={()=>setCtxOpen(false)}>
+        <div onClick={(e)=>e.stopPropagation()} style={{width:'min(92vw,720px)', background:'#fff', borderRadius:16, padding:20, boxShadow:'0 20px 60px rgba(0,0,0,.25)'}}>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10}}>
+            <div style={{fontWeight:900, fontSize:22}}>📚 {ctxData?.title}</div>
+            <button onClick={()=>setCtxOpen(false)} style={{border:'1px solid #eee', background:'#fff', borderRadius:8, padding:'6px 10px'}}>닫기</button>
+          </div>
+          <div style={{display:'grid', gap:12}}>
+            {ctxData?.cover_url && (
+              <div style={{display:'flex', justifyContent:'center'}}>
+                <img src={ctxData.cover_url} alt="cover" style={{width:120, height:160, objectFit:'cover', borderRadius:8, boxShadow:'0 6px 18px rgba(0,0,0,.15)'}} />
+              </div>
+            )}
+            <div><b>저자</b><div style={{color:'#374151', marginTop:4}}>{ctxData?.author || '알 수 없음'}</div></div>
+            <div><b>배경</b><div style={{color:'#374151', marginTop:4}}>{ctxData?.background || '—'}</div></div>
+            <div><b>내용</b><div style={{color:'#374151', marginTop:4}}>{ctxData?.content || '검색 결과가 충분하지 않습니다.'}</div></div>
+            {loading && <div style={{color:'#64748b'}}>계획 생성 중… 잠시만 기다려 주세요.</div>}
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 
@@ -145,18 +221,7 @@ export function PlanPanel() {
   );
 }
 
-export function JournalPanel() {
-  const { id } = useParams<{ id: string }>();
-  const [refreshKey, setRefreshKey] = useState(0);
-  const refresh = () => setRefreshKey(k => k + 1);
-
-  return (
-    <div style={{display:'grid', gap:12}}>
-      <DiaryComposer tripId={id!} onCreated={refresh} />
-      <DiaryTimeline key={refreshKey} tripId={id!} />
-    </div>
-  );
-}
+// JournalPanel 제거(요청에 따라 일기 기능 숨김)
 
 /*  ItineraryPanel (일정 전체 보기 + 각 일정에 일기 추가) */
 
@@ -210,6 +275,7 @@ export function ItineraryPanel() {
 
   return (
     <div style={{display:'grid', gap:12}}>
+      {/* file input은 동적으로 생성하여 사용함 */}
       {grouped.map(([date, items]) => (
         <Card key={date}>
           <SectionTitle>{date}</SectionTitle>
@@ -243,6 +309,25 @@ export function ItineraryPanel() {
                 ) : (
                   <Row style={{justifyContent:'flex-end'}}>
                     <Button onClick={()=>setOpenId(s.id)}>이 일정에 일기 추가</Button>
+                    {/* 간단 인증 버튼: 파일 업로드 → proof_url 등록 */}
+                    <Button
+                      onClick={async ()=>{
+                        try{
+                          const input = document.createElement('input');
+                          input.type='file'; input.accept='image/*';
+                          input.onchange = async ()=>{
+                            const f = input.files?.[0]; if(!f) return;
+                            const form = new FormData(); form.append('file', f);
+                            const res = await fetch(apiUrl('/api/uploads'), { method:'POST', body: form, credentials:'include' });
+                            if(!res.ok) throw new Error('upload failed');
+                            const j = await res.json();
+                            await completeMission(id!, Number(s.id), j.url);
+                            await fetchStops();
+                          };
+                          input.click();
+                        } catch(err) { console.error(err); }
+                      }}
+                    >인증하기</Button>
                   </Row>
                 )}
               </div>

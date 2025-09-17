@@ -9,6 +9,7 @@ from .routers import stats as stats_router
 from .routers import culture as culture_router
 from .routers import kopis as kopis_router
 from .routers import uploads as uploads_router
+from .routers import agency_trips as agency_trips_router
 from fastapi.staticfiles import StaticFiles
 from .routers import trips as trips_router
 import os
@@ -57,6 +58,7 @@ app.include_router(stats_router.router, prefix="/api", tags=["stats"])  # /api/u
 app.include_router(culture_router.router, prefix="/api/culture", tags=["culture"])  # /api/culture/nearby
 app.include_router(kopis_router.router, prefix="/api/kopis", tags=["kopis"])  # /api/kopis/perform
 app.include_router(uploads_router.router, prefix="/api", tags=["uploads"])  # /api/uploads
+app.include_router(agency_trips_router.router, prefix="/api/agency-trips", tags=["agency-trips"])  # /api/agency-trips/list
 
 # static mount for uploaded files
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")

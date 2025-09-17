@@ -34,16 +34,18 @@ const HeaderContainer = styled.header`
 const Nav = styled.nav`
   max-width: 1200px;
   margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto 1fr auto; /* 좌측 로고 / 가운데 메뉴 / 우측 인증 */
   align-items: center;
-  height: 80px;
+  min-height: 80px;
+  column-gap: 16px;
 `;
 
 const Left = styled.div`
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 20px;
+  flex-shrink: 0;
 `;
 
 const Logo = styled(Link)`
@@ -66,12 +68,13 @@ const Logo = styled(Link)`
 
 const NavMenu = styled.ul`
   display: flex;
-  gap: 32px;
+  gap: 24px;
   list-style: none;
   align-items: center;
   margin: 0;
   padding: 0;
-  flex-wrap: nowrap;
+  justify-self: center; /* 그리드 가운데 */
+  flex-wrap: wrap; /* 좁아지면 줄바꿈 */
 `;
 
 const NavItem = styled.li`
@@ -101,7 +104,8 @@ const AuthArea = styled.div`
   display: flex;
   gap: 8px;
   align-items: center;
-  margin-left: 40px;
+  justify-self: end;  /* 우측 끝 고정 */
+  min-width: 160px;   /* 버튼이 줄바뀌어도 영역 확보 */
 `;
 
 const LoginBtn = styled.button`
@@ -291,9 +295,10 @@ export default function Header() {
     { path: '/place-to-book', label: '장소로 책 찾기', icon: () => iconEl(FaMapMarkedAlt) },
     { path: '/diary', label: '여행 퀘스트북', icon: () => iconEl(FaBookOpen) },
     { path: '/four-cut', label: '인생네컷', icon: () => iconEl(FaImages) },
-    { path: '/literary-scrap', label: '스크랩', icon: () => iconEl(FaFolderOpen) },
+    { path: '/agency-trips', label: '관광사와 여행 떠나기', icon: () => iconEl(FaBookOpen) },
     // ✅ 정확히 복수형 경로
     { path: '/neighbors', label: '이웃의 책여행 따라가기', icon: () => iconEl(FaBook) },
+    { path: '/my', label: '마이페이지', icon: () => iconEl(FaBookOpen) },
   ];
 
   function doLogout() {

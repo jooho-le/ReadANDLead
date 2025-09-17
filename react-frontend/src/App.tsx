@@ -10,7 +10,9 @@ import Home from './pages/Home';
 import LocationMap from './pages/LocationMap';
 import TravelDiary from './pages/TravelDiary';
 import FourCutCreator from './pages/FourCutCreator';
-import LiteraryTripScrap from './pages/LiteraryTripScrap';
+import AgencyTrips from './pages/AgencyTrips';
+import AgencyTripDetail from './pages/AgencyTripDetail';
+import MyTrips from './pages/MyTrips';
 
 // 이웃의 책여행
 import Neighbors from './pages/Neighbors';
@@ -19,12 +21,13 @@ import NeighborCompose from './pages/NeighborCompose';
 import PlaceToBook from './pages/PlaceToBook';
 
 // 여행 일기 상세
-import DiaryTripLayout, { PlanPanel, ItineraryPanel, JournalPanel } from "./pages/DiaryTripPage";
+import DiaryTripLayout, { PlanPanel, ItineraryPanel } from "./pages/DiaryTripPage";
 
 const Main = styled.main`
   min-height: 100vh;
   background: #f8f9fb;
-  padding-top: 80px; /* Header가 fixed면 내용 가림 방지 */
+  /* 헤더가 1~2줄로 바뀌어도 가리지 않게 여유를 둔다 */
+  padding-top: clamp(90px, 12vw, 140px);
 `;
 
 export default function App() {
@@ -38,13 +41,14 @@ export default function App() {
           <Route path="/place-to-book" element={<PlaceToBook />} />
           <Route path="/diary" element={<TravelDiary />} />
           <Route path="/four-cut" element={<FourCutCreator />} />
-          <Route path="/literary-scrap" element={<LiteraryTripScrap />} />
+          <Route path="/agency-trips" element={<AgencyTrips />} />
+          <Route path="/agency-trips/:id" element={<AgencyTripDetail />} />
+          <Route path="/my" element={<MyTrips />} />
 
           {/* ✅ 여행 일기 상세 (중첩 라우트) */}
           <Route path="/diary/trip/:id" element={<DiaryTripLayout />}>
             <Route path="plan" element={<PlanPanel />} />
             <Route path="itinerary" element={<ItineraryPanel />} />
-            <Route path="journal" element={<JournalPanel />} />
           </Route>
 
           {/* ✅ 'new'는 :id보다 먼저 선언해야 함 */}

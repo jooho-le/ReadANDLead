@@ -1,7 +1,7 @@
 # server/app/routers/trips.py
 from openai import OpenAI
-import os, re, json, math, requests
-from fastapi import APIRouter, Body
+import os, re, json, math, requests, sqlite3, datetime
+from fastapi import APIRouter, Body, UploadFile, File, Form, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Optional
 
@@ -52,6 +52,63 @@ class PlanInput(BaseModel):
     days: int
     theme: str
 
+# ========================== 간단 영속 저장소(sqlite) ==========================
+DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "db.sqlite3"))
+
+def _conn():
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    # trips
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS trips (
+            user_id INTEGER NOT NULL,
+            trip_id TEXT NOT NULL,
+            book_title TEXT,
+            theme TEXT,
+            days INTEGER,
+            created_at TEXT NOT NULL,
+            PRIMARY KEY(user_id, trip_id)
+        )
+        """
+    )
+    # trip_stops
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS trip_stops (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            trip_id TEXT NOT NULL,
+            day INTEGER,
+            idx INTEGER,
+            title TEXT,
+            mission TEXT,
+            place TEXT,
+            lat REAL, lng REAL,
+            status TEXT DEFAULT 'pending',
+            proof_url TEXT,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+    # rewards
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS rewards (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            trip_id TEXT NOT NULL,
+            book_title TEXT,
+            claimed_at TEXT NOT NULL
+        )
+        """
+    )
+    return conn
+
+def _utcnow():
+    return datetime.datetime.utcnow().isoformat()
+
 # ========================== 책 리서치 (Wikipedia/Google Books) ==========================
 WIKI_SEARCH_API = "https://ko.wikipedia.org/w/api.php"
 WIKI_SUMMARY_API = "https://ko.wikipedia.org/api/rest_v1/page/summary/"
@@ -97,6 +154,23 @@ def _google_books_brief(title: str) -> Optional[str]:
         return " / ".join(parts)[:1200]
     except Exception:
         return None
+
+def _google_books_meta(title: str) -> dict:
+    """간단 메타(저자, 표지 썸네일) 조회"""
+    try:
+        r = requests.get(GOOGLE_BOOKS_API, params={
+            "q": title, "maxResults": 1, "langRestrict": "ko"
+        }, timeout=6)
+        r.raise_for_status()
+        items = r.json().get("items", [])
+        if not items:
+            return {}
+        vol = items[0].get("volumeInfo", {})
+        author = ", ".join(vol.get("authors", []) or [])
+        cover = (vol.get("imageLinks", {}) or {}).get("thumbnail") or (vol.get("imageLinks", {}) or {}).get("smallThumbnail")
+        return {"author": author, "cover_url": cover}
+    except Exception:
+        return {}
 
 def fetch_book_context(book_title: str) -> str:
     wiki = _wiki_summary_ko(book_title)
@@ -607,3 +681,312 @@ def generate_plan(trip_id: str, payload: PlanInput = Body(...)):
         draft["summary"] = draft.get("summary") or f"{payload.bookTitle} 기반 여행 요약"
         draft["days"] = normalized_days
         return TravelPlan(**draft)
+
+
+# ========================== Persist / Proof / Progress / Reward ==========================
+
+class PersistInput(BaseModel):
+    bookTitle: str
+    theme: Optional[str] = None
+    days: int
+    # day별 stop(LLM 확정 결과) — 최소 필드만 저장
+    stops: List[dict]
+
+def _get_user_id_from_header() -> int:
+    # 간소화: 토큰 인증 없이 데모 사용자 1 사용. 실제 운영은 deps.py 재사용 권장.
+    return 1
+
+@router.post("/{trip_id}/persist")
+def persist_trip(trip_id: str, payload: PersistInput):
+    user_id = _get_user_id_from_header()
+    conn = _conn()
+    now = _utcnow()
+    # 동일 trip_id의 이전 스톱 제거(요청: 새 계획으로 덮어쓰기)
+    conn.execute("DELETE FROM trip_stops WHERE user_id=? AND trip_id=?", (user_id, trip_id))
+    conn.execute(
+        "INSERT OR REPLACE INTO trips(user_id, trip_id, book_title, theme, days, created_at) VALUES(?,?,?,?,?,?)",
+        (user_id, trip_id, payload.bookTitle, payload.theme or "", int(payload.days), now),
+    )
+    # 기존 스톱은 유지(덮지 않음). 없는 것만 insert.
+    inserted = []
+    for d in payload.stops:
+        day = int(d.get("day") or 0)
+        stops = d.get("stops") or []
+        for idx, s in enumerate(stops):
+            title = (s.get("title") or "코스").strip()
+            mission = (s.get("mission") or None)
+            place = (s.get("place") or None)
+            lat = s.get("lat")
+            lng = s.get("lng")
+            # 동일 title/idx에 항목이 있으면 skip
+            cur = conn.execute(
+                "SELECT id FROM trip_stops WHERE user_id=? AND trip_id=? AND day=? AND idx=?",
+                (user_id, trip_id, day, idx),
+            ).fetchone()
+            if cur:
+                inserted.append({"day": day, "idx": idx, "id": cur["id"]})
+                continue
+            conn.execute(
+                """
+                INSERT INTO trip_stops(user_id, trip_id, day, idx, title, mission, place, lat, lng, status, created_at)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                (user_id, trip_id, day, idx, title, mission, place, lat, lng, "pending", now),
+            )
+            rid = conn.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
+            inserted.append({"day": day, "idx": idx, "id": rid})
+    conn.commit()
+    conn.close()
+    return {"trip_id": trip_id, "stop_ids": inserted}
+
+@router.get("/{trip_id}/mine")
+def get_my_trip(trip_id: str):
+    user_id = _get_user_id_from_header()
+    conn = _conn()
+    trip = conn.execute(
+        "SELECT book_title, theme, days, created_at FROM trips WHERE user_id=? AND trip_id=?",
+        (user_id, trip_id),
+    ).fetchone()
+    stops = conn.execute(
+        "SELECT id, day, idx, title, mission, place, lat, lng, status, proof_url FROM trip_stops WHERE user_id=? AND trip_id=? ORDER BY day, idx",
+        (user_id, trip_id),
+    ).fetchall()
+    conn.close()
+    if not trip:
+        raise HTTPException(status_code=404, detail="trip not found")
+    return {
+        "trip_id": trip_id,
+        "book_title": trip["book_title"],
+        "theme": trip["theme"],
+        "days": trip["days"],
+        "stops": [dict(r) for r in stops],
+    }
+
+class ProofIn(BaseModel):
+    proof_url: str
+
+@router.post("/{trip_id}/stops/{stop_id}/proof")
+def submit_proof(trip_id: str, stop_id: int, payload: ProofIn):
+    user_id = _get_user_id_from_header()
+    conn = _conn()
+    cur = conn.execute(
+        "SELECT id FROM trip_stops WHERE id=? AND user_id=? AND trip_id=?",
+        (stop_id, user_id, trip_id),
+    ).fetchone()
+    if not cur:
+        conn.close()
+        raise HTTPException(status_code=404, detail="stop not found")
+    conn.execute(
+        "UPDATE trip_stops SET status='success', proof_url=? WHERE id=?",
+        (payload.proof_url, stop_id),
+    )
+    conn.commit()
+    conn.close()
+    return {"ok": True, "stop_id": stop_id, "status": "success", "proof_url": payload.proof_url}
+
+@router.get("/{trip_id}/progress")
+def get_progress(trip_id: str):
+    user_id = _get_user_id_from_header()
+    conn = _conn()
+    trip = conn.execute(
+        "SELECT book_title FROM trips WHERE user_id=? AND trip_id=?",
+        (user_id, trip_id),
+    ).fetchone()
+    rows = conn.execute(
+        "SELECT COUNT(*) as total, SUM(CASE WHEN status='success' THEN 1 ELSE 0 END) as succeeded FROM trip_stops WHERE user_id=? AND trip_id=?",
+        (user_id, trip_id),
+    ).fetchone()
+    conn.close()
+    total = int(rows["total"] or 0)
+    succ = int(rows["succeeded"] or 0)
+    percent = int(round((succ / total) * 100)) if total else 0
+    return {
+        "book_title": trip["book_title"] if trip else "",
+        "total": total,
+        "succeeded": succ,
+        "percent": percent,
+        "all_cleared": total > 0 and succ == total,
+    }
+
+@router.post("/{trip_id}/claim-reward")
+def claim_reward(trip_id: str):
+    user_id = _get_user_id_from_header()
+    conn = _conn()
+    rows = conn.execute(
+        "SELECT COUNT(*) as total, SUM(CASE WHEN status='success' THEN 1 ELSE 0 END) as succ FROM trip_stops WHERE user_id=? AND trip_id=?",
+        (user_id, trip_id),
+    ).fetchone()
+    total = int(rows["total"] or 0)
+    succ = int(rows["succ"] or 0)
+    if total == 0 or succ < total:
+        conn.close()
+        raise HTTPException(status_code=400, detail="not cleared")
+    book = conn.execute(
+        "SELECT book_title FROM trips WHERE user_id=? AND trip_id=?",
+        (user_id, trip_id),
+    ).fetchone()
+    conn.execute(
+        "INSERT INTO rewards(user_id, trip_id, book_title, claimed_at) VALUES(?,?,?,?)",
+        (user_id, trip_id, (book["book_title"] if book else ""), _utcnow()),
+    )
+    conn.commit()
+    conn.close()
+    return {"ok": True, "message": f"'{(book['book_title'] if book else '')}' 미션 클리어! 리워드가 발급되었습니다."}
+
+# -------------------- Book context (for nice popup) --------------------
+@router.get("/book-context")
+def get_book_context(title: str):
+    # 원문 컨텍스트(위키/북스 요약 병합)
+    ctx = fetch_book_context(title) or ""
+    # 배경 키워드(도시/행정구)
+    hints = extract_background_hints(ctx or "") or (guess_city_from_book(title) or "")
+    # 메타(저자/표지)
+    meta = _google_books_meta(title)
+    author = (meta.get("author") or "").strip() or None
+    cover_url = meta.get("cover_url")
+    # 내용 요약: 첫 문장(국문 마침표 '다.' 또는 '.', '!', '?')를 한 문장으로
+    content_src = re.sub(r"\s+", " ", ctx).strip()
+    content = ""
+    if content_src:
+        m = re.search(r"(.+?(다\.|\.|!|\?))\s", content_src)
+        content = (m.group(1) if m else content_src)
+        content = content.strip()
+    else:
+        content = "관련 요약 정보를 찾지 못했습니다."
+    return {"title": title, "author": author or "알 수 없음", "background": hints or "—", "content": content, "cover_url": cover_url}
+
+# -------------------- Summary (my page) --------------------
+@router.get("/summary")
+def my_trips_summary():
+    user_id = _get_user_id_from_header()
+    conn = _conn()
+    trips = conn.execute(
+        "SELECT trip_id, book_title FROM trips WHERE user_id=? ORDER BY created_at DESC",
+        (user_id,)
+    ).fetchall()
+    out = []
+    for t in trips:
+        trip_id = t["trip_id"]
+        rows = conn.execute(
+            "SELECT COUNT(*) as total, SUM(CASE WHEN status='success' THEN 1 ELSE 0 END) as succ FROM trip_stops WHERE user_id=? AND trip_id=?",
+            (user_id, trip_id),
+        ).fetchone()
+        proofs = conn.execute(
+            "SELECT proof_url FROM trip_stops WHERE user_id=? AND trip_id=? AND proof_url IS NOT NULL ORDER BY id DESC LIMIT 3",
+            (user_id, trip_id),
+        ).fetchall()
+        total = int(rows["total"] or 0)
+        succ = int(rows["succ"] or 0)
+        percent = int(round((succ/total)*100)) if total else 0
+        out.append({
+            "trip_id": trip_id,
+            "book_title": t["book_title"],
+            "total": total,
+            "succeeded": succ,
+            "percent": percent,
+            "proofs": [r["proof_url"] for r in proofs if r["proof_url"]],
+        })
+    conn.close()
+    return out
+
+# 삭제: trip과 관련 데이터 일괄 제거
+@router.delete("/{trip_id}")
+def delete_trip(trip_id: str):
+    user_id = _get_user_id_from_header()
+    conn = _conn()
+    conn.execute("DELETE FROM diary WHERE user_id=? AND trip_id=?", (user_id, trip_id))
+    conn.execute("DELETE FROM trip_stops WHERE user_id=? AND trip_id=?", (user_id, trip_id))
+    conn.execute("DELETE FROM rewards WHERE user_id=? AND trip_id=?", (user_id, trip_id))
+    conn.execute("DELETE FROM trips WHERE user_id=? AND trip_id=?", (user_id, trip_id))
+    conn.commit(); conn.close()
+    return {"ok": True}
+
+
+# ========================== Stops (for Itinerary panel) ==========================
+@router.get("/{trip_id}/stops")
+def list_stops(trip_id: str):
+    user_id = _get_user_id_from_header()
+    conn = _conn()
+    rows = conn.execute(
+        "SELECT id, day, idx, title, mission, place, lat, lng, status, proof_url FROM trip_stops WHERE user_id=? AND trip_id=? ORDER BY day, idx",
+        (user_id, trip_id),
+    ).fetchall()
+    conn.close()
+    out = []
+    for r in rows:
+        out.append({
+            "id": r["id"],
+            "tripId": trip_id,
+            "placeId": str(r["id"]),
+            "placeName": r["place"] or r["title"],
+            "lat": r["lat"],
+            "lng": r["lng"],
+            "address": None,
+            "date": None,
+            "startTime": None,
+            "notes": r["mission"],
+        })
+    return out
+
+
+# ========================== Diary (minimal) ==========================
+def _ensure_diary(conn: sqlite3.Connection):
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS diary (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            trip_id TEXT NOT NULL,
+            stop_id INTEGER,
+            entry_type TEXT,
+            text TEXT,
+            content TEXT,
+            happened_at TEXT,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+
+@router.get("/{trip_id}/diary")
+def list_diary(trip_id: str):
+    user_id = _get_user_id_from_header()
+    conn = _conn(); _ensure_diary(conn)
+    rows = conn.execute(
+        "SELECT id, stop_id, entry_type, text, content, happened_at, created_at FROM diary WHERE user_id=? AND trip_id=? ORDER BY id DESC LIMIT 100",
+        (user_id, trip_id),
+    ).fetchall()
+    conn.close()
+    out = []
+    for r in rows:
+        out.append({
+            "id": str(r["id"]),
+            "trip_id": trip_id,
+            "stop_id": r["stop_id"],
+            "entry_type": r["entry_type"] or "note",
+            "text": r["text"],
+            "content": json.loads(r["content"]) if r["content"] else {},
+            "happened_at": r["happened_at"],
+            "created_at": r["created_at"],
+            "author_id": str(user_id),
+        })
+    return out
+
+class DiaryIn(BaseModel):
+    entry_type: Optional[str] = "note"
+    text: Optional[str] = None
+    stop_id: Optional[int] = None
+    happened_at: Optional[str] = None
+    content: Optional[dict] = None
+
+@router.post("/{trip_id}/diary")
+def create_diary(trip_id: str, payload: DiaryIn):
+    user_id = _get_user_id_from_header()
+    conn = _conn(); _ensure_diary(conn)
+    now = _utcnow()
+    conn.execute(
+        "INSERT INTO diary(user_id, trip_id, stop_id, entry_type, text, content, happened_at, created_at) VALUES(?,?,?,?,?,?,?,?)",
+        (user_id, trip_id, payload.stop_id, payload.entry_type, payload.text, json.dumps(payload.content or {}), payload.happened_at, now),
+    )
+    rid = conn.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
+    conn.commit(); conn.close()
+    return {"id": str(rid), "trip_id": trip_id, "author_id": str(user_id), "entry_type": payload.entry_type, "text": payload.text, "content": payload.content or {}, "happened_at": payload.happened_at, "created_at": now}

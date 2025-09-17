@@ -52,7 +52,17 @@ const Button = styled.button<{variant?: 'primary'|'ghost'}>`
 `;
 
 const Thumb = styled.img` width: 100%; height: 80px; object-fit: cover; border-radius: 10px; `;
-const Preview = styled.img` width: 100%; max-width: 420px; border-radius: 16px; display: block; margin: 0 auto; box-shadow: 0 10px 30px rgba(0,0,0,0.2); `;
+const Preview = styled.img`
+  width: 100%;
+  max-width: 480px;
+  aspect-ratio: 9/16;
+  object-fit: contain;
+  background: #fafafa;
+  border-radius: 16px;
+  display: block;
+  margin: 0 auto;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+`;
 
 const TemplateGroup = styled.div` display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; `;
 const TemplateBtn = styled.button<{active?: boolean}>`

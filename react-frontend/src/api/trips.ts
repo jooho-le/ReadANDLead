@@ -110,3 +110,52 @@ export async function createTripPlan(tripId: string, payload: PlanInput){
   if(!res.ok) throw new Error('failed to create plan');
   return res.json(); // { summary, days:[{ day, stops:[{place,address,lat,lng,url,...}]}] }
 }
+
+// 계획 영속화: 서버에 저장하여 stop_id를 부여받음
+export async function persistPlan(tripId: string, data: {
+  bookTitle: string; theme?: string; days: number; stops: Array<{ day: number; stops: StopItem[] }>
+}): Promise<{ trip_id: string; stop_ids: Array<{day:number; idx:number; id:number}> }>{
+  return apiFetch(`/api/trips/${tripId}/persist`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+}
+
+// 내 계획/진행 불러오기
+export async function fetchMyTrip(tripId: string): Promise<{
+  trip_id: string; book_title: string; theme?: string; days: number; stops: Array<any>
+}> {
+  return apiFetch(`/api/trips/${tripId}/mine`);
+}
+
+// 미션 인증(증빙 URL)
+export async function completeMission(tripId: string, stopId: number, proofUrl: string){
+  return apiFetch(`/api/trips/${tripId}/stops/${stopId}/proof`, {
+    method: 'POST',
+    body: JSON.stringify({ proof_url: proofUrl })
+  });
+}
+
+// 진행률
+export async function fetchProgress(tripId: string): Promise<{ total:number; succeeded:number; percent:number; book_title:string; all_cleared:boolean }>{
+  return apiFetch(`/api/trips/${tripId}/progress`);
+}
+
+// 리워드 수령
+export async function claimReward(tripId: string){
+  return apiFetch(`/api/trips/${tripId}/claim-reward`, { method: 'POST' });
+}
+
+// 책 컨텍스트(팝업용)
+export async function getBookContext(title: string): Promise<{ title:string; author?:string; background?:string; content?:string; cover_url?: string }>{
+  return apiFetch(`/api/trips/book-context?title=${encodeURIComponent(title)}`);
+}
+
+// 내 요약(마이페이지)
+export async function fetchTripSummary(): Promise<Array<{trip_id:string; book_title:string; total:number; succeeded:number; percent:number; proofs:string[]}>>{
+  return apiFetch(`/api/trips/summary`);
+}
+
+export async function deleteTrip(tripId: string){
+  return apiFetch(`/api/trips/${encodeURIComponent(tripId)}`, { method: 'DELETE' });
+}

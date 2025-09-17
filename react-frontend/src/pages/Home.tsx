@@ -99,6 +99,8 @@ const FeatureCard = styled(Link)`
   text-align: center;
   transition: all 0.3s ease;
   border: 1px solid #f0f0f0;
+  text-decoration: none;
+  & * { text-decoration: none; }
   
   &:hover {
     transform: translateY(-10px);
@@ -229,6 +231,12 @@ const Home: React.FC = () => {
       title: '도서 기반 문학 여행 가이드',
       description: '관심 도서를 검색하면 관련된 여행지, 일정, 전시, 지역 콘텐츠를 추천해드립니다.',
       link: '/map',
+    },
+    {
+      icon: FaUsers,
+      title: '관광사와 여행 떠나기',
+      description: '관책 속 이야기를 따라 여행사가 안내하는 특별한 문학 여행으로 떠나보세요.',
+      link: '/agency-trips',
     },
     {
       icon: FaMapMarkedAlt, // 지역(지도) 기반 가이드
