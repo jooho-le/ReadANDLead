@@ -3,6 +3,10 @@
 
 // 환경변수 → Vite/CRA 둘 다 케어, 기본은 127.0.0.1:8000
 import { Capacitor } from "@capacitor/core";
+
+declare global {
+  interface Window { __API_BASE__?: string }
+}
 // Vite (property access만 사용; Webpack 경고 회피)
 const VITE_API: string | undefined = (import.meta as any)?.env?.VITE_API_URL;
 
@@ -31,7 +35,8 @@ function resolveBase(): string {
     }
   } catch {}
 
-  const envUrl = hostHint || VITE_API ?? CRA_API ?? CRA_API_BASE ?? "";
+  const runtimeBase = (typeof window !== "undefined" && window.__API_BASE__) || "";
+  const envUrl = runtimeBase || hostHint || VITE_API || CRA_API || CRA_API_BASE || "";
 
   // 기본값: 개발은 로컬, 프로덕션은 Render 공개 URL
   let base = envUrl || (IS_PROD ? "https://readandlead-api.onrender.com" : "http://127.0.0.1:8000");
