@@ -5,7 +5,6 @@ import styled from 'styled-components';
 
 import Header from './components/Header';
 
-// 기존 페이지들
 import Home from './pages/Home';
 import LocationMap from './pages/LocationMap';
 import TravelDiary from './pages/TravelDiary';
@@ -13,21 +12,24 @@ import FourCutCreator from './pages/FourCutCreator';
 import AgencyTrips from './pages/AgencyTrips';
 import AgencyTripDetail from './pages/AgencyTripDetail';
 import MyTrips from './pages/MyTrips';
-
-// 이웃의 책여행
 import Neighbors from './pages/Neighbors';
 import NeighborPostPage from './pages/NeighborPost';
 import NeighborCompose from './pages/NeighborCompose';
 import PlaceToBook from './pages/PlaceToBook';
-
-// 여행 일기 상세
 import DiaryTripLayout, { PlanPanel, ItineraryPanel } from "./pages/DiaryTripPage";
 
 const Main = styled.main`
   min-height: 100vh;
   background: #f8f9fb;
-  /* 헤더가 1~2줄로 바뀌어도 가리지 않게 여유를 둔다 */
-  padding-top: clamp(90px, 12vw, 140px);
+
+  /* 작은 화면에서만 헤더 여유 */
+  /* (min 40px, pref 12vw, max 50px) */
+  padding-top: clamp(40px, 12vw, 50px);
+
+  /* 데스크탑 이상에서는 여백 제거 */
+  @media (min-width: 1024px) {
+    padding-top: 100px;
+  }
 `;
 
 export default function App() {
@@ -45,18 +47,15 @@ export default function App() {
           <Route path="/agency-trips/:id" element={<AgencyTripDetail />} />
           <Route path="/my" element={<MyTrips />} />
 
-          {/* ✅ 여행 일기 상세 (중첩 라우트) */}
           <Route path="/diary/trip/:id" element={<DiaryTripLayout />}>
             <Route path="plan" element={<PlanPanel />} />
             <Route path="itinerary" element={<ItineraryPanel />} />
           </Route>
 
-          {/* ✅ 'new'는 :id보다 먼저 선언해야 함 */}
           <Route path="/neighbors/new" element={<NeighborCompose />} />
           <Route path="/neighbors" element={<Neighbors />} />
           <Route path="/neighbors/:id" element={<NeighborPostPage />} />
 
-          {/* 없는 경로는 홈으로 */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Main>

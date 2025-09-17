@@ -49,6 +49,8 @@ react-frontend/build/
 react-frontend/node_modules/
 react-frontend/build/
 react-frontend/.env
+react-frontend/.env.backup_pre_migration
+react-frontend/.env.production
 react-frontend/.env.local
 react-frontend/.env.*.local
 # Android WebView bundled build (do not commit secrets in built JS)

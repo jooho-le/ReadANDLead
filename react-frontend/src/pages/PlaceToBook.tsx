@@ -5,16 +5,22 @@ import DiscoveryPanelKakao from '../components/discovery/DiscoveryPanelKakao';
 import { geocodeAddress, loadKakaoSdk, searchKeyword } from '../api/kakao';
 import bookLocationData from '../data/book_location_event.json';
 import AutocompleteInput, { Suggestion } from '../components/common/AutocompleteInput';
+import {
+  InputGroup,
+  StyledAutoInput,
+  StyledSubmitButton,
+  Button,
+} from '../components/ui';
 
-const Page = styled.div`background:#fff; padding:24px;`;
+const Page = styled.div`background:#fff; padding:20px;`;
 const Card = styled.div`background:#fff;border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.08);padding:16px;`;
 const Title = styled.h2`text-align:center;margin:0 0 16px;`;
 const MapBox = styled.div`height:500px;border-radius:12px;overflow:hidden;`;
 
 const SearchSection = styled.section`
-  background:#fff;border:1px solid #eee;border-radius:16px;padding:20px;margin-bottom:16px;
+  background:#fff;border:1px solid #eee;border-radius:16px;padding:20px;margin-bottom:40px;
 `;
-const SearchTitle = styled.h3`margin:0 0 12px;text-align:center;`;
+const SearchTitle = styled.h3`margin:0 0 12px;text-align:center; font-size: 24px`;
 const SearchForm = styled.form`
   display:flex;align-items:center;gap:10px;max-width:720px;margin:0 auto;position:relative;
   @media (max-width:768px){flex-direction:column;}
@@ -188,15 +194,28 @@ export default function PlaceToBook(){
         <SearchSection>
           <SearchTitle>장소로 책 찾기</SearchTitle>
           <SearchForm onSubmit={onSubmit}>
-            <AutocompleteInput
-              value={placeTerm}
-              onChange={setPlaceTerm}
-              placeholder="장소를 입력하세요 (예: 대전, 제주도)"
-              fetchSuggestions={fetchPlaceSuggestions}
-              onSelect={(s)=>{ setPlaceTerm(s.label); setHits(findBooksByPlace(s.label)); setSelected(null); }}
-            />
-            <Btn type="submit" disabled={!placeTerm.trim()}>검색</Btn>
+            <InputGroup style={{ width: '97%' }}>
+              <StyledAutoInput
+                value={placeTerm}
+                onChange={setPlaceTerm}
+                placeholder="장소를 입력하세요 (예: 대전, 제주도)"
+                fetchSuggestions={fetchPlaceSuggestions}
+                onSelect={(s) => {
+                  setPlaceTerm(s.label);
+                  setHits(findBooksByPlace(s.label));
+                  setSelected(null);
+                }}
+              />
+              <StyledSubmitButton
+                type="submit"
+                size="lg"
+                disabled={!placeTerm.trim()}
+              >
+                검색
+              </StyledSubmitButton>
+            </InputGroup>
           </SearchForm>
+
 
           {hits.length > 0 && (
             <ResultList>
@@ -218,7 +237,7 @@ export default function PlaceToBook(){
         </SearchSection>
 
         {/* 지도 */}
-        <Title>위치 기반 문학 체험 (Kakao)</Title>
+        <Title>위치 기반 문학 체험</Title>
         <MapBox>
           <KakaoMap center={center} onReady={setMap} />
         </MapBox>

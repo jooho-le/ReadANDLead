@@ -20,6 +20,38 @@ const Tabs = styled.div`
   a.active{ background:#ffffff; border:1px solid #e5e7eb; border-bottom-color:transparent; color:#111827; }
 `;
 
+const FormGrid = styled.div`
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr auto;
+  gap: 12px;
+  align-items: end;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const FormField = styled.div`
+  display: block;
+  flex-direction: column;
+`;
+
+const LavenderSection = styled.div`
+  background: linear-gradient(
+    180deg,
+    #f7f4ff 0%,    /* 연한 라벤더 */
+    #eee7ff 30%,   /* 중간톤 */
+    #e2dbff 100%   /* 살짝 푸른 보라로 내려감 */
+  );
+  padding: 24px;
+  border-radius: 16px;
+  display: grid;
+  gap: 16px;
+  box-shadow: 0 4px 12px rgba(128, 90, 213, 0.06);  /* 연보라 그림자 */
+  border: 1px solid #e9e5ff;                        /* 아주 옅은 테두리 */
+`;
+
+
 /* ---------------- Layout ---------------- */
 
 export default function DiaryTripLayout() {
@@ -109,33 +141,56 @@ function PlanForm({ tripId }: { tripId: string }) {
   };
 
   return (
-    <>
+    <LavenderSection>
     <Card>
       <SectionTitle>책 기반 일정 계획 만들기</SectionTitle>
       <form onSubmit={onSubmit} style={{ display: 'grid', gap: 12 }}>
-        <Row gap={12}>
-          <div style={{ flex: 2 }}>
-            <div style={{ fontSize: 12, color: '#6b7280' }}>책 제목</div>
-            <Input value={bookTitle} onChange={e=>setBookTitle(e.target.value)} placeholder="예) 난쟁이가 쏘아올린 작은 공" required />
-          </div>
-          <div>
-            <div style={{ fontSize: 12, color: '#6b7280' }}>인원</div>
-            <Input type="number" min={1} value={travelers} onChange={e=>setTravelers(Number(e.target.value)||1)} />
-          </div>
-          <div>
-            <div style={{ fontSize: 12, color: '#6b7280' }}>기간(일)</div>
-            <Input type="number" min={1} value={days} onChange={e=>setDays(Number(e.target.value)||1)} />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 12, color: '#6b7280' }}>테마</div>
-            <Input value={theme} onChange={e=>setTheme(e.target.value)} placeholder="예) 역사 체험 / 문학 산책" />
-          </div>
-        </Row>
-        <Row gap={12}>
-          <Button type="submit" disabled={loading}>{loading ? "생성 중..." : "계획 생성"}</Button>
-        </Row>
-        {error && <div style={{ color: '#ef4444' }}>{error}</div>}
-      </form>
+        <FormGrid>
+    <FormField>
+      <div style={{ fontSize: 12, color: '#6b7280' }}>책 제목</div>
+      <Input
+        value={bookTitle}
+        onChange={e => setBookTitle(e.target.value)}
+        placeholder="예) 난쟁이가 쏘아올린 작은 공"
+        required
+      />
+    </FormField>
+    <FormField>
+      <div style={{ fontSize: 12, color: '#6b7280' }}>인원</div>
+      <Input
+        type="number"
+        min={1}
+        value={travelers}
+        onChange={e => setTravelers(Number(e.target.value) || 1)}
+      />
+    </FormField>
+    <FormField>
+      <div style={{ fontSize: 12, color: '#6b7280' }}>기간(일)</div>
+      <Input
+        type="number"
+        min={1}
+        value={days}
+        onChange={e => setDays(Number(e.target.value) || 1)}
+        />
+      </FormField>
+      <FormField>
+        <div style={{ fontSize: 12, color: '#6b7280' }}>테마</div>
+        <Input
+          value={theme}
+          onChange={e => setTheme(e.target.value)}
+          placeholder="예) 역사 체험 / 문학 산책"
+        />
+      </FormField>
+      <div style={{ alignSelf: 'end' }}>
+        <Button type="submit" disabled={loading}>
+          {loading ? '생성 중...' : '계획 생성'}
+        </Button>
+      </div>
+    </FormGrid>
+
+
+    {error && <div style={{ color: '#ef4444' }}>{error}</div>}
+  </form>
 
       {plan && (
         <div style={{ marginTop: 16, display: 'grid', gap: 12 }}>
@@ -202,8 +257,9 @@ function PlanForm({ tripId }: { tripId: string }) {
         </div>
       </div>
     )}
-    </>
+    </LavenderSection>
   );
+
 }
 
 /* ---------------- Panels ---------------- */
@@ -216,7 +272,12 @@ export function PlanPanel() {
       <PlanForm tripId={id!} />
 
       {/* 기존 수동 일정 관리 UI */}
-      <StopPlanner tripId={id!} onAdded={() => { /* 필요시 토스트 */ }} />
+      <LavenderSection>
+        <Card>
+          <StopPlanner tripId={id!} onAdded={() => { /* 필요시 토스트 */ }} />
+        </Card>
+      </LavenderSection>
+
     </div>
   );
 }
@@ -337,7 +398,11 @@ export function ItineraryPanel() {
       ))}
 
       {grouped.length === 0 && (
-        <Card><div style={{color:'#64748b'}}>아직 추가된 일정이 없습니다.</div></Card>
+        <Card style={{ maxWidth: 600, margin: '0 auto' }}>
+          <div style={{ color:'#64748b', textAlign: 'center' }}>
+            아직 추가된 일정이 없습니다.
+          </div>
+        </Card>
       )}
     </div>
   );
