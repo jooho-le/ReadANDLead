@@ -68,3 +68,13 @@ def ping():
     return {"ok": True}
 
 app.include_router(trips_router.router, prefix="/api/trips", tags=["trips"])
+
+# Root 안내: 기본 URL 접속 시 간단 안내를 반환
+@app.get("/")
+def root_index():
+    return {
+        "ok": True,
+        "service": "Read&Lead API",
+        "docs": "/docs",
+        "ping": "/api/ping",
+    }
