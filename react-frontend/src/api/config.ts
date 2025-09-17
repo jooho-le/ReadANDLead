@@ -17,15 +17,18 @@ const CRA_API_BASE: string | undefined =
     ? (process.env.REACT_APP_API_BASE_URL as string | undefined)
     : undefined;
 
+// Build-time prod detection
+// - CRA/Webpack: process.env.NODE_ENV === 'production' (literal replaced at build time)
+// - Vite: import.meta.env.PROD
+const IS_PROD: boolean =
+  ((typeof import.meta !== "undefined" && (import.meta as any)?.env?.PROD) as boolean) ||
+  process.env.NODE_ENV === "production";
+
 function resolveBase(): string {
   const envUrl = VITE_API ?? CRA_API ?? CRA_API_BASE ?? "";
 
   // 기본값: 개발은 로컬, 프로덕션은 Render 공개 URL
-  let base = envUrl || (
-    (typeof process !== "undefined" && (process.env as any)?.NODE_ENV) === "production"
-      ? "https://readandlead-api.onrender.com"
-      : "http://127.0.0.1:8000"
-  );
+  let base = envUrl || (IS_PROD ? "https://readandlead-api.onrender.com" : "http://127.0.0.1:8000");
 
   // Emulator helper: if base points to localhost and platform is android, rewrite to 10.0.2.2
   try {
