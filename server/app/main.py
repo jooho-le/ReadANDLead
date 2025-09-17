@@ -14,8 +14,6 @@ from fastapi.staticfiles import StaticFiles
 from .routers import trips as trips_router
 import os
 
-print("OPENAI_API_KEY:", os.getenv("OPENAI_API_KEY"))
-
 app = FastAPI(title="Read&Lead API")
 
 # CORS: 배포/앱 환경에 맞게 환경변수로 제어
