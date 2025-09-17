@@ -2,6 +2,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { Capacitor } from '@capacitor/core';
 
 import Header from './components/Header';
 
@@ -18,25 +19,38 @@ import NeighborCompose from './pages/NeighborCompose';
 import PlaceToBook from './pages/PlaceToBook';
 import DiaryTripLayout, { PlanPanel, ItineraryPanel } from "./pages/DiaryTripPage";
 
-const Main = styled.main`
+const Main = styled.main<{ $native?: boolean }>`
   min-height: 100vh;
   background: #f8f9fb;
 
   /* 작은 화면에서만 헤더 여유 */
   /* (min 40px, pref 12vw, max 50px) */
-  padding-top: clamp(40px, 12vw, 50px);
+  padding-top: ${(p) => (p.$native ? '0px' : 'clamp(40px, 12vw, 50px)')};
 
   /* 데스크탑 이상에서는 여백 제거 */
   @media (min-width: 1024px) {
-    padding-top: 100px;
+    padding-top: ${(p) => (p.$native ? '0px' : '100px')};
   }
+
+  /* 네이티브 앱일 때는 사이드 레일 폭만큼 여백을 줌 */
+  padding-left: ${(p) => (p.$native ? '72px' : '0px')};
 `;
 
 export default function App() {
+  const isNative = (() => {
+    try {
+      // Capacitor 7: isNativePlatform(), getPlatform()
+      if ((Capacitor as any)?.isNativePlatform?.()) return true;
+      const p = (Capacitor as any)?.getPlatform?.();
+      return p === 'android' || p === 'ios';
+    } catch {
+      return false;
+    }
+  })();
   return (
     <BrowserRouter>
       <Header />
-      <Main>
+      <Main $native={isNative}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/map" element={<LocationMap />} />
