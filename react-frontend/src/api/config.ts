@@ -6,16 +6,12 @@ import { Capacitor } from "@capacitor/core";
 // Vite (property access만 사용; Webpack 경고 회피)
 const VITE_API: string | undefined = (import.meta as any)?.env?.VITE_API_URL;
 
-// CRA (옵셔널 체이닝 절대 X, 대신 typeof 가드로 런타임 안전)
-const CRA_API: string | undefined =
-  typeof process !== "undefined" && process.env
-    ? (process.env.REACT_APP_API_URL as string | undefined)
-    : undefined;
-// CRA alt key (some code paths use API_BASE_URL)
-const CRA_API_BASE: string | undefined =
-  typeof process !== "undefined" && process.env
-    ? (process.env.REACT_APP_API_BASE_URL as string | undefined)
-    : undefined;
+// CRA: 반드시 정적 접근식으로 읽어야 빌드 타임에 치환됩니다.
+// (옵셔널 체이닝/any 캐스팅 없이 정확히 process.env.REACT_APP_* 형태여야 함)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const CRA_API: string | undefined = process.env.REACT_APP_API_URL as any;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const CRA_API_BASE: string | undefined = process.env.REACT_APP_API_BASE_URL as any;
 
 // Build-time prod detection
 // - CRA/Webpack: process.env.NODE_ENV === 'production' (literal replaced at build time)
