@@ -2,12 +2,16 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import {
+  FaHome,
   FaBook,
   FaMapMarkedAlt,
   FaBookOpen,
   FaImages,
+  FaGlobeEurope,
+  FaUserFriends,
   FaFolderOpen,
   FaSignInAlt,
+  FaSignOutAlt
 } from 'react-icons/fa';
 import type { IconType, IconBaseProps } from 'react-icons';
 import { createPortal } from 'react-dom';
@@ -104,6 +108,9 @@ const Logo = styled(Link)`
     transform: scale(1.05);
     transition: transform 0.3s ease;
   }
+  @media (max-width: 768px) {
+    display: none;
+  }
 `;
 
 const NavMenu = styled.ul`
@@ -113,9 +120,17 @@ const NavMenu = styled.ul`
   align-items: center;
   margin: 0;
   padding: 0;
-  justify-self: center; /* 그리드 가운데 */
-  flex-wrap: wrap; /* 좁아지면 줄바꿈 */
+  justify-self: center;
+  flex-wrap: wrap;
+
+  @media (max-width: 768px) {
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
 `;
+
 
 const NavItem = styled.li`
   position: relative;
@@ -133,22 +148,30 @@ const NavLink = styled(Link)<{ $active: boolean }>`
   white-space: nowrap;
   color: ${(p) => (p.$active ? '#667eea' : '#666')};
   background: ${(p) => (p.$active ? 'rgba(102,126,234,0.1)' : 'transparent')};
-  text-decoration: none; 
+  text-decoration: none;
+
   &:hover {
-    
     color: #667eea;
     background: rgba(102,126,234,0.1);
     transform: translateY(-2px);
-    border-bottom: 2px solid #555
+    border-bottom: 2px solid #555;
+  }
+
+  @media (max-width: 900px) {
+    padding: 10px;
+    span {
+      display: none; /* label 숨기기 */
+    }
   }
 `;
+
 
 const AuthArea = styled.div`
   display: flex;
   gap: 8px;
   align-items: center;
   justify-self: end;  /* 우측 끝 고정 */
-  min-width: 160px;   /* 버튼이 줄바뀌어도 영역 확보 */
+  //min-width: 160px;   /* 버튼이 줄바뀌어도 영역 확보 */
 `;
 
 const LoginBtn = styled.button`
@@ -157,34 +180,49 @@ const LoginBtn = styled.button`
   justify-content: center;
   gap: 8px;
   padding: 10px 14px;
-  white-space: nowrap;
   border-radius: 10px;
   cursor: pointer;
   border: 1px solid #e5e7ff;
   background: #f5f6ff;
   color: #444;
   font-weight: 700;
+
   &:hover {
     background: #eef0ff;
   }
+
+  @media (max-width: 768px) {
+    padding: 8px 10px;
+    span {
+      display: none;
+    }
+  }
 `;
 
+
 const LogoutBtn = styled.button`
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   padding: 10px 14px;
   border-radius: 10px;
-  white-space: nowrap;
-  cursor: pointer;
   font-weight: 700;
   color: #fff;
   background: #667eea;
   border: none;
+
   &:hover {
     opacity: 0.9;
   }
+
+  @media (max-width: 768px) {
+    padding: 8px 10px;
+    span {
+      display: none;
+    }
+  }
 `;
+
 
 const Backdrop = styled.div`
   position: fixed;
@@ -230,6 +268,7 @@ const ProviderBtn = styled.button`
 const Form = styled.form`
   display: grid;
   gap: 10px;
+  margin-top: 20px;
 `;
 
 const Label = styled.label`
@@ -333,15 +372,15 @@ export default function Header() {
   }, [token]);
 
   const navItems: NavItemDef[] = [
-    { path: '/', label: '홈', icon: () => iconEl(FaBook) },
-    { path: '/map', label: '책으로 장소찾기', icon: () => iconEl(FaMapMarkedAlt) },
+    { path: '/', label: '홈', icon: () => iconEl(FaHome) },
+    { path: '/map', label: '책으로 장소찾기', icon: () => iconEl(FaBook) },
     { path: '/place-to-book', label: '장소로 책 찾기', icon: () => iconEl(FaMapMarkedAlt) },
     { path: '/diary', label: '여행 퀘스트북', icon: () => iconEl(FaBookOpen) },
     { path: '/four-cut', label: '인생네컷', icon: () => iconEl(FaImages) },
-    { path: '/agency-trips', label: '관광사와 여행 떠나기', icon: () => iconEl(FaBookOpen) },
+    { path: '/agency-trips', label: '관광사와 여행 떠나기', icon: () => iconEl(FaGlobeEurope) },
     // ✅ 정확히 복수형 경로
-    { path: '/neighbors', label: '이웃의 책여행 따라가기', icon: () => iconEl(FaBook) },
-    { path: '/my', label: '마이페이지', icon: () => iconEl(FaBookOpen) },
+    { path: '/neighbors', label: '이웃의 책여행 따라가기', icon: () => iconEl(FaUserFriends) },
+    { path: '/my', label: '마이페이지', icon: () => iconEl(FaFolderOpen) },
   ];
 
   const isNative = (() => {
@@ -472,7 +511,7 @@ export default function Header() {
               <NavItem key={item.path}>
                 <NavLink to={item.path} $active={location.pathname === item.path}>
                   {item.icon()}
-                  {item.label}
+                  <span>{item.label}</span> {/* ← label만 감싸서 모바일에서 숨김 */}
                 </NavLink>
               </NavItem>
             ))}
@@ -481,20 +520,21 @@ export default function Header() {
 
         <AuthArea>
           {!profile ? (
-            <LoginBtn
-              onClick={() => {
-                setMode('login');
-                setShowModal(true);
-              }}
-            >
-              {iconEl(FaSignInAlt)} 로그인
-            </LoginBtn>
+              <LoginBtn
+                  onClick={() => {
+                    setMode('login');
+                    setShowModal(true);
+                  }}
+              >
+                {iconEl(FaSignInAlt)} <span>로그인</span>
+              </LoginBtn>
           ) : (
             <>
               <div style={{ fontWeight: 700, color: '#555', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {profile.display_name || profile.email}
               </div>
-              <LogoutBtn onClick={doLogout}>로그아웃</LogoutBtn>
+              <LogoutBtn onClick={doLogout}>
+                {iconEl(FaSignOutAlt)} <span> 로그아웃 </span></LogoutBtn>
             </>
           )}
         </AuthArea>
