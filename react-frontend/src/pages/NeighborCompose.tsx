@@ -4,7 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import { createNeighborPost, uploadImage } from '../api/neighbor';
 
 const Wrap = styled.div`
-  max-width: 900px; margin: 0 auto; padding: 24px 20px 60px;
+  max-width: 900px; margin: 0 auto; padding: 50px 20px 60px;
+  
+  @media (max-width: 768px) {
+    padding: 40px 16px 16px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 32px 12px 12px;
+  }
 `;
 const H1 = styled.h1`margin:0 0 14px;font-size:1.8rem;font-weight:800;color:#222;`;
 const Label = styled.div`margin:12px 0 6px;font-weight:700;`;

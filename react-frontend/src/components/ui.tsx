@@ -50,11 +50,34 @@ export const Input = styled.input`
     ${fieldBase};
     box-sizing: border-box;
     max-width: 100%;
+    
+    @media (max-width: 768px) {
+        max-width: 100%;
+        font-size: 15px;
+        padding: 10px;
+      }
+
+  @media (max-width: 480px) {
+    font-size: 14px;
+    padding: 8px;
+  }
+    
 `;
 export const Select = styled.select`
     ${fieldBase};
     box-sizing: border-box;
     max-width: 100%;  
+    
+    @media (max-width: 768px) {
+    max-width: 100%;
+    font-size: 15px;
+    padding: 10px;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 14px;
+    padding: 8px;
+  }
 `;
 export const Textarea = styled.textarea`
   ${fieldBase};
@@ -62,6 +85,19 @@ export const Textarea = styled.textarea`
   min-height: 80px;
   box-sizing: border-box;
   max-width: 100%;
+    
+  @media (max-width: 768px) {
+    max-width: 100%;
+    font-size: 15px;
+    padding: 10px;
+    min-height: 140px;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 14px;
+    padding: 8px;
+    min-height: 120px;
+  }
 `;
 
 export const Label = styled.label`
