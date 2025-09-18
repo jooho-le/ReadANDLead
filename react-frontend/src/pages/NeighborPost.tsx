@@ -8,7 +8,15 @@ import type { NeighborPost } from '../api/neighbor';
 const Wrap = styled.div`
   max-width: 900px;
   margin: 0 auto;
-  padding: 24px 20px 60px;
+  padding: 50px 20px 60px;
+  
+  @media (max-width: 768px) {
+    padding: 40px 16px 16px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 32px 12px 12px;
+  }
 `;
 
 const Back = styled(Link)`

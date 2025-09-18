@@ -8,7 +8,15 @@ import { listAgencyTrips, type AgencyTrip } from '../api/agency';
 const Wrap = styled.div`
   max-width: 1040px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 50px 20px 20px;
+  
+  @media (max-width: 768px) {
+    padding: 40px 16px 16px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 32px 12px 12px;
+  }
 `;
 const Head = styled.div`
   display: flex;
