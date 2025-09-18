@@ -7,7 +7,15 @@ import { Link } from 'react-router-dom';
 import RcIcon from '../components/RcIcon';
 import { FaMapMarkedAlt, FaUsers } from 'react-icons/fa';
 
-const Wrap = styled.div`max-width:1040px;margin:0 auto;padding:20px;`;
+const Wrap = styled.div`max-width:1040px;margin:0 auto;   padding: 30px 20px 20px;
+
+  @media (max-width: 900px) {
+    padding: 70px 16px 16px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 70px 12px 12px;
+  }`;
 const Grid = styled.div`display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;@media(max-width:900px){grid-template-columns:1fr;}`;
 const Card = styled.div`border:1px solid #eee;background:#fff;border-radius:12px;padding:14px;color:inherit;`;
 const Bar = styled.div<{p:number}>`height:8px;border-radius:6px;background:#eef2f7;overflow:hidden;>span{display:block;height:100%;width:${p=>p.p}%;background:#6366f1;}`;

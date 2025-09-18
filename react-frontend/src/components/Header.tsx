@@ -108,9 +108,16 @@ const Logo = styled(Link)`
     transform: scale(1.05);
     transition: transform 0.3s ease;
   }
-  @media (max-width: 768px) {
+  @media (max-width: 1695px) {
     display: none;
   }
+  @media (max-width: 1480px) {
+    display: inline-flex;
+  }
+  @media (max-width: 860px) {
+    display: none;
+  }
+  
 `;
 
 const NavMenu = styled.ul`
@@ -123,7 +130,7 @@ const NavMenu = styled.ul`
   justify-self: center;
   flex-wrap: wrap;
 
-  @media (max-width: 768px) {
+  @media (max-width: 600px) {
     gap: 8px;
     justify-content: center;
     flex-wrap: nowrap;
@@ -157,7 +164,7 @@ const NavLink = styled(Link)<{ $active: boolean }>`
     border-bottom: 2px solid #555;
   }
 
-  @media (max-width: 900px) {
+  @media (max-width: 1480px) {
     padding: 10px;
     span {
       display: none; /* label 숨기기 */
