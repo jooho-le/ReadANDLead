@@ -4,9 +4,10 @@
 여행지, 여행코스, 커뮤니티 제공 서비스 
 
 # 프로젝트 구조
-'''dash
-Read & Lead
+## Read & Lead 프로젝트 구조
 
+```text
+Read & Lead
 ├─ react-frontend/                             # 프론트엔드 앱(React CRA)
 │  ├─ public/
 │  │  └─ index.html                            # 루트 HTML
@@ -26,96 +27,95 @@ Read & Lead
 │  │  │  └─ agency.ts                          # 제휴 여행상품 API
 │  │  ├─ components/
 │  │  │  ├─ common/
-│  │  │  │  └─ AutocompleteInput.tsx           # 재사용 자동완성 입력(책/길찾기 제안)
+│  │  │  │  └─ AutocompleteInput.tsx           # 재사용 자동완성 입력
 │  │  │  ├─ discovery/
-│  │  │  │  ├─ DiscoveryPanelKakao.tsx         # 추천 패널(공연/전시/박물관/카페/핫플·정렬/필터/상세/길찾기/일정추가)
-│  │  │  │  ├─ useKakaoMarkers.ts              # 카카오 마커 그룹 관리(추가/지우기)
-│  │  │  │  └─ useMarkers.ts                   # 범용 마커 훅(일부 페이지)
+│  │  │  │  ├─ DiscoveryPanelKakao.tsx         # 추천 패널
+│  │  │  │  ├─ useKakaoMarkers.ts              # 카카오 마커 그룹 관리
+│  │  │  │  └─ useMarkers.ts                   # 범용 마커 훅
 │  │  │  ├─ map/
-│  │  │  │  └─ KakaoMap.tsx                    # Kakao 지도 컨테이너(onReady로 map 전달)
+│  │  │  │  └─ KakaoMap.tsx                    # Kakao 지도 컨테이너
 │  │  │  ├─ routes/
 │  │  │  │  ├─ RoutePlannerDialog.tsx          # 경로 계획 다이얼로그
-│  │  │  │  └─ RouteSidebar.tsx                # 경로/경유지 사이드바
+│  │  │  │  └─ RouteSidebar.tsx                # 경유지 사이드바
 │  │  │  └─ diary/
 │  │  │     ├─ TravelDiaryTab.tsx              # 일기 탭
 │  │  │     ├─ DiaryTimeline.tsx               # 타임라인
 │  │  │     ├─ DiaryComposer.tsx               # 일기 작성
 │  │  │     └─ DiaryEntryCard.tsx              # 일기 카드
 │  │  ├─ data/
-│  │  │  ├─ book_location_event.json           # 도서 → 관련 장소/이벤트 매핑
-│  │  │  └─ neighbor_posts.json                # 이웃글 샘플 데이터
+│  │  │  ├─ book_location_event.json           # 도서 → 장소/이벤트 매핑
+│  │  │  └─ neighbor_posts.json                # 이웃글 샘플
 │  │  ├─ pages/
-│  │  │  ├─ LocationMap.tsx                    # 책 검색 + 지도 + 추천 패널
-│  │  │  ├─ Home.tsx                           # 홈
-│  │  │  ├─ Neighbors.tsx                      # 이웃글 목록
-│  │  │  ├─ NeighborPost.tsx                   # 이웃글 상세
-│  │  │  ├─ NeighborCompose.tsx                # 이웃글 작성
-│  │  │  ├─ TravelDiary.tsx                    # 여행일기 메인
-│  │  │  ├─ DiaryTripPage.tsx                  # 특정 여행의 일기
-│  │  │  ├─ MyTrips.tsx                        # 내 여행 목록
-│  │  │  ├─ AgencyTrips.tsx                    # 제휴 여행상품
-│  │  │  ├─ AgencyTripDetail.tsx               # 제휴 상품 상세
-│  │  │  ├─ BookTripPage.tsx                   # 도서 기반 여행 플로우
-│  │  │  ├─ BookTripDetailPage.tsx             # 도서 여행 상세
-│  │  │  ├─ PlaceToBook.tsx                    # 장소→책 연결(유틸)
-│  │  │  ├─ FourCutCreator.tsx                 # 4컷 생성(유틸)
-│  │  │  └─ OAuthPopupCallback.tsx             # OAuth 팝업 콜백
-│  │  ├─ hooks/useStops.ts                     # 스톱 상태 훅
-│  │  ├─ lib/utils.ts                          # 범용 유틸
-│  │  ├─ utils/canvas.ts                       # 캔버스 유틸
-│  │  ├─ types/kakao.d.ts                      # Kakao 타입
-│  │  ├─ types/json.d.ts                       # JSON import 타입
-│  │  ├─ styles/GlobalStyle.ts                 # 글로벌 스타일
-│  │  ├─ App.tsx                               # 라우팅/전역 레이아웃
-│  │  ├─ index.tsx                             # 앱 엔트리
-│  │  ├─ App.css                               # 전역 스타일
-│  │  ├─ index.css                             # 전역 스타일
-│  │  ├─ setupTests.ts                         # 테스트 설정
-│  │  └─ reportWebVitals.ts                    # 웹 바이탈 리포팅
-│  ├─ public/manifest.json                     # PWA 매니페스트
+│  │  │  ├─ LocationMap.tsx                    # 책 검색 + 지도 + 패널
+│  │  │  ├─ Home.tsx
+│  │  │  ├─ Neighbors.tsx
+│  │  │  ├─ NeighborPost.tsx
+│  │  │  ├─ NeighborCompose.tsx
+│  │  │  ├─ TravelDiary.tsx
+│  │  │  ├─ DiaryTripPage.tsx
+│  │  │  ├─ MyTrips.tsx
+│  │  │  ├─ AgencyTrips.tsx
+│  │  │  ├─ AgencyTripDetail.tsx
+│  │  │  ├─ BookTripPage.tsx
+│  │  │  ├─ BookTripDetailPage.tsx
+│  │  │  ├─ PlaceToBook.tsx
+│  │  │  ├─ FourCutCreator.tsx
+│  │  │  └─ OAuthPopupCallback.tsx
+│  │  ├─ hooks/useStops.ts
+│  │  ├─ lib/utils.ts
+│  │  ├─ utils/canvas.ts
+│  │  ├─ types/kakao.d.ts
+│  │  ├─ types/json.d.ts
+│  │  ├─ styles/GlobalStyle.ts
+│  │  ├─ App.tsx
+│  │  ├─ index.tsx
+│  │  ├─ App.css
+│  │  ├─ index.css
+│  │  ├─ setupTests.ts
+│  │  └─ reportWebVitals.ts
+│  ├─ public/manifest.json
 │  ├─ package.json
 │  └─ tsconfig.json
 │
 ├─ server/                                     # 백엔드 앱(FastAPI)
 │  ├─ app/
-│  │  ├─ main.py                               # FastAPI 엔트리/CORS/라우터/정적 마운트
-│  │  ├─ database.py                           # DB 연결/세션
-│  │  ├─ models.py                             # ORM 모델
-│  │  ├─ schemas.py                            # Pydantic 스키마
-│  │  ├─ security.py                           # JWT 등 보안 유틸
-│  │  ├─ deps.py                               # 의존성 주입
-│  │  ├─ db.sqlite3                            # SQLite DB(개발 기본)
-│  │  ├─ routers/                              # API 라우터
-│  │  │  ├─ auth.py                            # 인증(회원가입/로그인)
-│  │  │  ├─ posts.py                           # 이웃글
-│  │  │  ├─ stats.py                           # 통계(/api/users/count)
-│  │  │  ├─ culture.py                         # 문화포털 프록시(/api/culture/nearby)
-│  │  │  ├─ kopis.py                           # KOPIS 프록시(/api/kopis/perform)
-│  │  │  ├─ uploads.py                         # 파일 업로드/정적
-│  │  │  ├─ agency_trips.py                    # 제휴 여행상품
-│  │  │  └─ trips.py                           # 여행/스톱/리워드
-│  │  └─ static/                               # 업로드 정적 파일(런타임)
-│  ├─ requirements.txt                         # 서버 의존성
-│  ├─ run_gunicorn.sh                          # Gunicorn 실행 스크립트
+│  │  ├─ main.py
+│  │  ├─ database.py
+│  │  ├─ models.py
+│  │  ├─ schemas.py
+│  │  ├─ security.py
+│  │  ├─ deps.py
+│  │  ├─ db.sqlite3
+│  │  ├─ routers/
+│  │  │  ├─ auth.py
+│  │  │  ├─ posts.py
+│  │  │  ├─ stats.py
+│  │  │  ├─ culture.py
+│  │  │  ├─ kopis.py
+│  │  │  ├─ uploads.py
+│  │  │  ├─ agency_trips.py
+│  │  │  └─ trips.py
+│  │  └─ static/
+│  ├─ requirements.txt
+│  ├─ run_gunicorn.sh
 │  ├─ deploy/
-│  │  ├─ nginx-api.conf.example                # Nginx 리버스 프록시 예시
-│  │  └─ systemd/readandlead-api.service.example # systemd 서비스 예시
-│  └─ .env                                     # 서버 환경변수(로컬 예시)
+│  │  ├─ nginx-api.conf.example
+│  │  └─ systemd/readandlead-api.service.example
+│  └─ .env
 │
-├─ data/                                       # 데이터 세트
-│  ├─ book_location_event.json                 # 도서→관련 장소/이벤트
-│  └─ book_metadata_kakao.json                 # 책 메타데이터(수집본)
+├─ data/
+│  ├─ book_location_event.json
+│  └─ book_metadata_kakao.json
 │
-├─ scripts/                                    # 보조 스크립트
-│  ├─ book_metadata_collector.py               # 책 메타 수집
-│  └─ delete_posts_by_title.py                 # 제목 기준 글 삭제
+├─ scripts/
+│  ├─ book_metadata_collector.py
+│  └─ delete_posts_by_title.py
 │
-├─ docs/                                       # 문서
-│  └─ ANDROID_RELEASE.md                       # 안드로이드 릴리즈 가이드
+├─ docs/
+│  └─ ANDROID_RELEASE.md
 │
-├─ .gitignore                                  # node_modules, build, .env*, etc.
-└─ README.md                                   # 프로젝트 소개와 이 구조 가이드
-'''dash
+├─ .gitignore
+└─ README.md
 
 
 # 서비스 기능
