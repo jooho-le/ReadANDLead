@@ -6,6 +6,7 @@
 # 프로젝트 구조
 
 Read & Lead
+'''dash
 ├─ react-frontend/                             # 프론트엔드 앱(React CRA)
 │  ├─ public/
 │  │  └─ index.html                            # 루트 HTML
@@ -122,80 +123,3 @@ Read & Lead
 - 인생네컷 : 문학 여행 중 찍은 사진을 인생네컷 형식으로 제작해 저장 및 SNS 공유 
 - 관광사와 함께하는 문학 여행 : 관광사를 연계하여 문학 작품 기반 여행 코스 안내 및 여행 방향 제시 
 - 이웃의 책 여행 따라가기 : 다른 사용자들의 문학 여행 글을 보고 소통 및 코스를 따라가며 공감을 형성 
-
-# 알고리즘
-graph TD
-
-  %% ===================== Frontend (React) =====================
-  subgraph FE[Frontend (React CRA)]
-    A[🚀 앱 로드] --> A1[🗺️ Kakao SDK 로드/초기화]
-    A1 --> A2{📍 위치 권한?}
-    A2 -- 예 --> A3[▶ 현재 위치 획득 → center 설정]
-    A2 -- 아니오 --> A4[➡ 기본 중심(서울) 사용]
-    A3 --> P[🧭 LocationMap 화면 렌더]
-    A4 --> P
-
-    %% Book → Location
-    P --> B1[📚 책 제목 입력/자동완성]
-    B1 --> B2[🧭 주소 지오코딩 or 키워드 검색]
-    B2 --> B3[🗺️ 지도 중심 이동 + 책 마커/인포윈도우]
-
-    %% Discovery Panel
-    P --> C0[🧩 탐색 패널(카테고리 선택)]
-    C0 -->|카페/핫플/박물관| C1[🔎 Kakao Places 카테고리 검색]
-    C1 --> C2[📍 마커 추가 + 리스트 렌더]
-
-    C0 -->|전시| EX_FE[📡 /api/culture/nearby 호출]
-    C0 -->|공연| PR_FE[📡 /api/kopis/perform 호출]
-
-    %% Item interactions
-    I0[📄 목록 아이템] --> I1[🧭 지도 팬/줌 + 인포윈도우]
-    I0 --> I2{🔎 상세 보기?}
-    I2 -- 예 --> G1[🖼️ Google Places 상세(선택)]
-    G1 --> G2[📷 사진/주소/평점/웹/전화 표시]
-
-    I0 --> A0{⚙️ 액션}
-    A0 --> D0[🧭 외부 길찾기 열기(카카오/네이버/구글)]
-    A0 --> T0[🗂️ 여행에 추가]
-    T0 --> AUTH{🔐 로그인됨?}
-    AUTH -- 아니오 --> L0[👤 로그인/회원가입]
-    AUTH -- 예 --> T1[🏷️ Place upsert] --> T2[🧩 Trip Stop 추가]
-  end
-
-  %% ===================== Backend (FastAPI) =====================
-  subgraph BE[Backend (FastAPI)]
-    BE0[/api/ping/]
-    AUTH_BE[/api/auth/*/]
-    POSTS_BE[/api/neighbor-posts/*/]
-    STATS_BE[/api/users/count/]
-    CULT_BE[/api/culture/nearby/]
-    KOPIS_BE[/api/kopis/perform/]
-    TRIPS_BE[/api/trips/*/]
-    UP_BE[/api/uploads/*/]
-
-    EX_FE --> CULT_BE
-    PR_FE --> KOPIS_BE
-    T1 --> TRIPS_BE
-    T2 --> TRIPS_BE
-  end
-
-  %% ===================== External Data Sources =====================
-  subgraph EXT[External Data Sources]
-    KAKAO[Kakao Maps JS/Places]
-    CULTAPI[문화공공데이터 포털]
-    KOPISAPI[KOPIS 공연 API]
-    GPLACES[Google Places API]
-  end
-
-  %% Frontend direct dependencies
-  A1 --> KAKAO
-  C1 --> KAKAO
-  G1 --> GPLACES
-
-  %% Backend proxies
-  CULT_BE --> CULTAPI
-  KOPIS_BE --> KOPISAPI
-
-  %% Helpers
-  classDef dim fill:#f6f8fa,stroke:#d0d7de,color:#24292f;
-  class FE dim; class BE dim; class EXT dim;
