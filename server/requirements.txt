@@ -26,6 +26,7 @@ mdurl==0.1.2
 openai==1.107.2
 orjson==3.11.3
 passlib==1.7.4
+psycopg2-binary==2.9.10
 pyasn1==0.6.1
 pydantic==2.7.4
 pydantic-settings==2.3.3

@@ -4,6 +4,8 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from .database import Base, engine
+from . import models  # ensures metadata is registered before create_all
 from .routers import posts, auth  
 from .routers import stats as stats_router
 from .routers import culture as culture_router
@@ -13,6 +15,10 @@ from .routers import agency_trips as agency_trips_router
 from fastapi.staticfiles import StaticFiles
 from .routers import trips as trips_router
 import os
+
+# Ensure tables exist (idempotent). For prod consider migrations, but this
+# keeps new envs from booting without tables.
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Read&Lead API")
 
