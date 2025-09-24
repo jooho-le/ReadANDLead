@@ -33,7 +33,7 @@ export default function NeighborCompose() {
   const nav = useNavigate();
   const [title, setTitle] = useState('');
   const [coverUrl, setCoverUrl] = useState('');
-  const [content, setContent] = useState('<p>여기에 내용을 입력하세요…</p>');
+  const [content, setContent] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
 
@@ -74,6 +74,7 @@ export default function NeighborCompose() {
   async function save() {
     if (busy) return;
     if (!title.trim()) return alert('제목을 입력해 주세요.');
+    if (!content.trim()) return alert('본문을 입력해 주세요.');
     const token = localStorage.getItem('token');
     if (!token) return alert('로그인 후 작성할 수 있어요.');
 
@@ -110,7 +111,11 @@ export default function NeighborCompose() {
       )}
 
       <Label>본문(HTML 가능)</Label>
-      <TextArea value={content} onChange={e=>setContent(e.target.value)} />
+      <TextArea
+        value={content}
+        onChange={e=>setContent(e.target.value)}
+        placeholder="예: <p>여행 후기를 HTML로 작성해 보세요</p>"
+      />
 
       <Label>갤러리 이미지(여러 파일 선택 가능)</Label>
       <Input type="file" accept="image/*" multiple onChange={onSelectGallery} />
