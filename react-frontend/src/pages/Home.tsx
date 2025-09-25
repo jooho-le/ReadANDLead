@@ -62,7 +62,7 @@ const Container = styled.div`
 
 const SectionTitle = styled.h2`
   font-size: 2.25rem;
-  font-weight: 700;
+  font-weight: 700; 
   text-align: center;
   margin-bottom: 48px;
   color: #fff;
