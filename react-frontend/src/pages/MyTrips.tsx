@@ -34,10 +34,33 @@ export default function MyTrips(){
   const [items, setItems] = useState<any[]>([]);
   const [posts, setPosts] = useState<NeighborPost[]>([]);
   const [displayName, setDisplayName] = useState<string>('');
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
   useEffect(()=>{(async()=>{try{setItems(await fetchTripSummary());}catch{}})();},[]);
-  useEffect(()=>{(async()=>{try{const profile=await me(); setDisplayName(profile.display_name||profile.email);}catch{}})();},[]);
-  useEffect(()=>{(async()=>{try{const all=await listNeighborPosts(); if(displayName){ setPosts(all.filter(p=>p.author===displayName)); } else { setPosts(all);} }catch{}})();},[displayName]);
+  useEffect(()=>{(async()=>{
+    try{
+      const profile=await me();
+      setDisplayName(profile.display_name||profile.email);
+      setIsLoggedIn(true);
+    }catch{
+      setIsLoggedIn(false);
+      setDisplayName('');
+      setPosts([]);
+    }
+  })();},[]);
+  useEffect(()=>{(async()=>{
+    if(isLoggedIn===false){
+      setPosts([]);
+      return;
+    }
+    if(isLoggedIn!==true||!displayName) return;
+    try{
+      const all=await listNeighborPosts();
+      setPosts(all.filter(p=>p.author===displayName));
+    }catch{
+      setPosts([]);
+    }
+  })();},[displayName,isLoggedIn]);
   return (
     <Wrap>
       <h1 style={{fontWeight:800, fontSize:24, margin:'8px 0 8px'}}>마이페이지</h1>
@@ -85,17 +108,23 @@ export default function MyTrips(){
       {view==='posts' && (
         <>
           <BackBtn onClick={()=>setView('choose')}>← 돌아가기</BackBtn>
-          <Grid>
-          {posts.map(p => (
-            <Card key={p.id}>
-              <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                <Link to={`/neighbors/${p.id}`} style={{fontWeight:800, textDecoration:'none', color:'inherit'}}>{p.title}</Link>
-                <span style={{fontSize:12, color:'#64748b'}}>{new Date(p.date).toLocaleDateString()}</span>
-              </div>
-              {p.cover && <img src={p.cover} alt="cover" style={{width:'100%', height:160, objectFit:'cover', borderRadius:8, marginTop:8}} />}
-            </Card>
-          ))}
-          </Grid>
+          {isLoggedIn===false ? (
+            <div style={{border:'1px solid #e5e7eb', background:'#fff', borderRadius:12, padding:24, color:'#64748b'}}>
+              로그인 후 내가 쓴 글을 확인할 수 있어요.
+            </div>
+          ) : (
+            <Grid>
+            {posts.map(p => (
+              <Card key={p.id}>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                  <Link to={`/neighbors/${p.id}`} style={{fontWeight:800, textDecoration:'none', color:'inherit'}}>{p.title}</Link>
+                  <span style={{fontSize:12, color:'#64748b'}}>{new Date(p.date).toLocaleDateString()}</span>
+                </div>
+                {p.cover && <img src={p.cover} alt="cover" style={{width:'100%', height:160, objectFit:'cover', borderRadius:8, marginTop:8}} />}
+              </Card>
+            ))}
+            </Grid>
+          )}
         </>
       )}
     </Wrap>
