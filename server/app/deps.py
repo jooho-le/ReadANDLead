@@ -14,7 +14,7 @@ bearer_scheme = HTTPBearer(auto_error=False)  # Authorization 헤더가 없어�
 
 def _decode_access_token(token: str) -> Optional[dict]:
     try:
-    payload = jwt.decode(token, security.SECRET_KEY, algorithms=[security.ALGORITHM])
+        payload = jwt.decode(token, security.SECRET_KEY, algorithms=[security.ALGORITHM])
         return payload
     except JWTError:
         return None
