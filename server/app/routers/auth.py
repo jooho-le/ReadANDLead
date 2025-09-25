@@ -1,148 +1,55 @@
-# server/app/routers/auth.py
-from fastapi import APIRouter, HTTPException, Header
-from pydantic import BaseModel
-from typing import Optional, List
-import sqlite3
-import os, json, uuid, hashlib, hmac
-from datetime import datetime
+"""Authentication endpoints using SQLAlchemy models and JWT tokens."""
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
+from .. import models, schemas, security
+from ..database import get_db
+from ..deps import get_current_user_required
 
 router = APIRouter()
 
-# --- DB 공통 (posts.py와 같은 폴더 기준으로 같은 DB 파일을 씁니다) ---
-DB_PATH = os.path.join(os.path.dirname(__file__), "..", "db.sqlite3")
-DB_PATH = os.path.abspath(DB_PATH)
 
-def get_conn():
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    # users 테이블
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            display_name TEXT,
-            created_at TEXT NOT NULL
-        )
-    """)
-    # 세션(토큰) 테이블
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS sessions (
-            token TEXT PRIMARY KEY,
-            user_id INTEGER NOT NULL,
-            created_at TEXT NOT NULL,
-            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
-        )
-    """)
-    return conn
+@router.post("/register", response_model=schemas.TokenOut)
+def register(payload: schemas.RegisterIn, db: Session = Depends(get_db)):
+    email = payload.email.strip().lower()
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
 
-# --- 비번 해시 (외부 라이브러리 없이 동작) ---
-def hash_password(password: str, salt: Optional[str] = None) -> str:
-    if not salt:
-        salt = uuid.uuid4().hex
-    dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 200_000)
-    return f"{salt}${dk.hex()}"
-
-def verify_password(password: str, stored: str) -> bool:
-    try:
-        salt, hexhash = stored.split("$", 1)
-    except ValueError:
-        return False
-    test = hash_password(password, salt).split("$", 1)[1]
-    return hmac.compare_digest(test, hexhash)
-
-def issue_token() -> str:
-    return uuid.uuid4().hex
-
-def get_user_by_token(token: str):
-    conn = get_conn()
-    cur = conn.execute("""
-        SELECT u.id, u.email, u.display_name
-          FROM sessions s
-          JOIN users u ON u.id = s.user_id
-         WHERE s.token = ?
-    """, (token,))
-    row = cur.fetchone()
-    conn.close()
-    return row
-
-# --- 스키마 ---
-class RegisterIn(BaseModel):
-    email: str
-    password: str
-    display_name: Optional[str] = None
-    class Config:
-        extra = "allow"   # displayName 같은 추가 키 허용
-
-class LoginIn(BaseModel):
-    email: str
-    password: str
-
-class TokenOut(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-
-class MeOut(BaseModel):
-    id: int
-    email: str
-    display_name: Optional[str] = None
-
-# --- 라우트 ---
-@router.post("/register", response_model=TokenOut)
-def register(payload: RegisterIn):
-    conn = get_conn()
-    # displayName 지원 (프론트가 카멜로 보낼 수 있으니)
-    dn = payload.display_name or getattr(payload, "displayName", None)
-    if not dn:
-        dn = payload.email.split("@")[0]
-
-    # 중복 이메일 체크
-    cur = conn.execute("SELECT id FROM users WHERE email = ?", (payload.email,))
-    if cur.fetchone():
-        conn.close()
+    existing = db.query(models.User).filter(models.User.email == email).first()
+    if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    now = datetime.utcnow().isoformat()
-    pw = hash_password(payload.password)
-    conn.execute(
-        "INSERT INTO users (email, password_hash, display_name, created_at) VALUES (?, ?, ?, ?)",
-        (payload.email, pw, dn, now)
+    display_name = payload.display_name or email.split("@")[0]
+    hashed_password = security.hash_password(payload.password)
+
+    user = models.User(
+        email=email,
+        hashed_password=hashed_password,
+        display_name=display_name,
     )
-    conn.commit()
-    # 토큰 발급
-    cur = conn.execute("SELECT id FROM users WHERE email = ?", (payload.email,))
-    uid = cur.fetchone()["id"]
-    token = issue_token()
-    conn.execute("INSERT INTO sessions (token, user_id, created_at) VALUES (?, ?, ?)",
-                 (token, uid, now))
-    conn.commit()
-    conn.close()
-    return TokenOut(access_token=token)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
 
-@router.post("/login", response_model=TokenOut)
-def login(payload: LoginIn):
-    conn = get_conn()
-    cur = conn.execute("SELECT id, password_hash FROM users WHERE email = ?", (payload.email,))
-    row = cur.fetchone()
-    if not row or not verify_password(payload.password, row["password_hash"]):
-        conn.close()
-        raise HTTPException(status_code=401, detail="Invalid email or password")
-    uid = row["id"]
-    token = issue_token()
-    now = datetime.utcnow().isoformat()
-    conn.execute("INSERT OR REPLACE INTO sessions (token, user_id, created_at) VALUES (?, ?, ?)",
-                 (token, uid, now))
-    conn.commit()
-    conn.close()
-    return TokenOut(access_token=token)
+    token = security.create_access_token(str(user.id))
+    return schemas.TokenOut(access_token=token)
 
-@router.get("/me", response_model=MeOut)
-def me(authorization: Optional[str] = Header(None)):
-    if not authorization or not authorization.lower().startswith("bearer "):
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    token = authorization.split(" ", 1)[1]
-    row = get_user_by_token(token)
-    if not row:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    return MeOut(id=row["id"], email=row["email"], display_name=row["display_name"])
+
+@router.post("/login", response_model=schemas.TokenOut)
+def login(payload: schemas.LoginIn, db: Session = Depends(get_db)):
+    email = payload.email.strip().lower()
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if not user or not security.verify_password(payload.password, user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+
+    token = security.create_access_token(str(user.id))
+    return schemas.TokenOut(access_token=token)
+
+
+@router.get("/me", response_model=schemas.UserMe)
+def me(current_user: models.User = Depends(get_current_user_required)):
+    return schemas.UserMe(
+        id=current_user.id,
+        email=current_user.email,
+        display_name=current_user.display_name,
+    )

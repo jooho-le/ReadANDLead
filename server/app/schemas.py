@@ -5,7 +5,7 @@ from datetime import datetime
 class RegisterIn(BaseModel):
     email: str
     password: str
-    display_name: str
+    display_name: Optional[str] = None
 
 class LoginIn(BaseModel):
     email: str

@@ -3,22 +3,18 @@ from typing import Optional
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import jwt, JWTError
+from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
+from . import models, security
 from .database import get_db
-from . import models
-
-# JWT 기본값 (auth 라우터와 동일하게 맞추세요)
-JWT_SECRET = "dev-secret"         # .env 로 빼고 싶으면 os.getenv("JWT_SECRET", "dev-secret")
-JWT_ALG = "HS256"
 
 bearer_scheme = HTTPBearer(auto_error=False)  # Authorization 헤더가 없어도 에러 안 내고 None 반환
 
 
 def _decode_access_token(token: str) -> Optional[dict]:
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
+    payload = jwt.decode(token, security.SECRET_KEY, algorithms=[security.ALGORITHM])
         return payload
     except JWTError:
         return None
@@ -45,8 +41,12 @@ async def get_current_user_optional(
         return None
 
     # SQLAlchemy 1.4/2.x 호환: get(primary_key)
-    user = db.query(models.User).get(int(user_id))
-    return user
+    try:
+        user_id_int = int(user_id)
+    except (TypeError, ValueError):
+        return None
+
+    return db.get(models.User, user_id_int)
 
 
 async def get_current_user_required(
