@@ -16,6 +16,12 @@ connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite")
 
 engine = create_engine(DATABASE_URL, connect_args=connect_args)
 
+try:
+    scheme = DATABASE_URL.split(":", 1)[0]
+    print(f"[DB] Using {scheme} database")
+except Exception:
+    pass
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 class Base(DeclarativeBase):
