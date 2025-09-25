@@ -12,6 +12,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
+      - key: ALLOW_SQLITE_FALLBACK
+        value: "false"
       # 배포 후 Vercel 도메인을 포함해 변경하세요 (예: https://your-app.vercel.app)
       - key: ALLOWED_ORIGINS
         value: http://localhost,http://localhost:3000
