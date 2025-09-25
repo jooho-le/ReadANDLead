@@ -438,7 +438,6 @@ export default function Header() {
       setDisplayName('');
       setShowModal(false);
 
-      if (mode === 'register') navigate('/neighbors'); // 가입 직후 목록으로
     } catch (e: any) {
       setErrMsg(e?.message || '요청 중 오류가 발생했어요.');
     } finally {

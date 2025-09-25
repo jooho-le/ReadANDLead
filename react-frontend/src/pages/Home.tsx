@@ -163,7 +163,7 @@ const LavenderSection = styled.div`
 export default function Home() {
   const features = [
     { icon: FaSearch, title: '도서 기반 문학 여행 가이드', description: '관심 도서를 검색하면 관련된 여행지, 일정, 전시, 지역 콘텐츠를 추천해드립니다.', link: '/map' },
-    { icon: FaUsers, title: '관광사와 여행 떠나기', description: '관책 속 이야기를 따라 여행사가 안내하는 특별한 문학 여행으로 떠나보세요.', link: '/agency-trips' },
+    { icon: FaUsers, title: '관광사와 여행 떠나기', description: '책 속 이야기를 따라 여행사가 안내하는 특별한 문학 여행으로 떠나보세요.', link: '/agency-trips' },
     { icon: FaMapMarkedAlt, title: '지역 기반 문학 여행 가이드', description: '관심 지역을 스토리로한 책을 기반으로 여행지, 일정, 전시, 콘텐츠를 추천해드립니다.', link: '/place-to-book' },
     { icon: FaBookOpen, title: '여행 퀘스트북', description: '책을 기반으로 한 여행계획을 추천받고 책 도장을 모아 할인된 가격으로 책을 구매해 보세요.', link: '/diary' },
     { icon: FaUsers, title: '이웃의 여행스토리 살펴보기', description: '책 이웃들이 남긴 여행스토리를 살펴보고 책여행에 관해 소통해보세요.', link: '/neighbors' },
@@ -181,29 +181,19 @@ export default function Home() {
     (async () => {
       const center = await getCurrentPosition();
 
-      try {
-        const cnt = await countNearbyAttractions(center);
-        if (!cancelled) setNearPlaces(cnt);
-      } catch {}
+      const placePromise = countNearbyAttractions(center)
+        .then((cnt) => { if (!cancelled) setNearPlaces(cnt); })
+        .catch(() => {});
 
-      try {
-        const today = new Date();
-        const yyyymmdd = (d: Date) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
-        const from = yyyymmdd(today);
-        const to = yyyymmdd(new Date(today.getTime() + 30 * 86400000));
+      const eventPromise = computeNearbyEvents(center)
+        .then((total) => { if (!cancelled) setNearEvents(total); })
+        .catch(() => {});
 
-        let total = 0;
-        total += await fetchCultureNearbyCount({ lat: center.lat, lng: center.lng, radiusKm: 5, from, to });
-        const sido = await reverseSido(center);
-        if (sido) total += await fetchKopisCount({ city: sido, from, to, rows: 50 });
+      const userPromise = fetchUsersCount()
+        .then((count) => { if (!cancelled) setUsers(count); })
+        .catch(() => {});
 
-        if (!cancelled) setNearEvents(total);
-      } catch {}
-
-      try {
-        const count = await fetchUsersCount();
-        if (!cancelled) setUsers(count);
-      } catch {}
+      await Promise.allSettled([placePromise, eventPromise, userPromise]);
     })();
 
     return () => { cancelled = true; };
@@ -315,4 +305,21 @@ async function countNearbyAttractions(center: LatLng): Promise<number> {
   }
 
   return total;
+}
+
+async function computeNearbyEvents(center: LatLng): Promise<number> {
+  const today = new Date();
+  const yyyymmdd = (d: Date) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+  const from = yyyymmdd(today);
+  const to = yyyymmdd(new Date(today.getTime() + 30 * 86400000));
+
+  const [cultureCount, sido] = await Promise.all([
+    fetchCultureNearbyCount({ lat: center.lat, lng: center.lng, radiusKm: 5, from, to }),
+    reverseSido(center),
+  ]);
+
+  if (!sido) return cultureCount;
+
+  const kopisCount = await fetchKopisCount({ city: sido, from, to, rows: 50 });
+  return cultureCount + kopisCount;
 }

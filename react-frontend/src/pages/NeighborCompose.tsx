@@ -110,11 +110,11 @@ export default function NeighborCompose() {
         </div>
       )}
 
-      <Label>본문(HTML 가능)</Label>
+      <Label>본문</Label>
       <TextArea
         value={content}
         onChange={e=>setContent(e.target.value)}
-        placeholder="예: <p>여행 후기를 HTML로 작성해 보세요</p>"
+        placeholder="여행 스토리를 적어주세요"
       />
 
       <Label>갤러리 이미지(여러 파일 선택 가능)</Label>
