@@ -40,7 +40,10 @@ def login(payload: schemas.LoginIn, db: Session = Depends(get_db)):
     email = payload.email.strip().lower()
     user = db.query(models.User).filter(models.User.email == email).first()
     if not user or not security.verify_password(payload.password, user.hashed_password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="회원가입 정보가 없거나 입력이 잘못되었습니다.",
+        )
 
     token = security.create_access_token(str(user.id))
     return schemas.TokenOut(access_token=token)
