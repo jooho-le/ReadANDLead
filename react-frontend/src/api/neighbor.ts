@@ -34,14 +34,28 @@ const EP = {
   upload: '/api/uploads',
 };
 
+function resolvePostMedia(post: NeighborPost): NeighborPost {
+  const cover = post.cover ? apiUrl(post.cover) : undefined;
+  const images = post.images
+    ?.filter((img) => !!img)
+    .map((img) => apiUrl(img));
+  return {
+    ...post,
+    cover,
+    images,
+  };
+}
+
 // 목록 조회 (공개)
 export function listNeighborPosts() {
-  return apiFetch<NeighborPost[]>(EP.neighborPosts);
+  return apiFetch<NeighborPost[]>(EP.neighborPosts).then((posts) =>
+    posts.map(resolvePostMedia),
+  );
 }
 
 // 단건 조회 (공개)
 export function getNeighborPost(id: string | number) {
-  return apiFetch<NeighborPost>(`${EP.neighborPosts}/${id}`);
+  return apiFetch<NeighborPost>(`${EP.neighborPosts}/${id}`).then(resolvePostMedia);
 }
 
 // 생성 (인증 필요)
@@ -55,7 +69,7 @@ export function createNeighborPost(body: PostCreateInput) {
   return apiFetch<NeighborPost>(EP.neighborPosts, {
     method: 'POST',
     body: JSON.stringify(payload),
-  });
+  }).then(resolvePostMedia);
 }
 
 // 수정 (인증 & 본인 글만)
@@ -70,7 +84,7 @@ export function updateNeighborPost(id: string | number, body: PostUpdateInput) {
   return apiFetch<NeighborPost>(`${EP.neighborPosts}/${id}`, {
     method: 'PUT',
     body: JSON.stringify(payload),
-  });
+  }).then(resolvePostMedia);
 }
 
 // 삭제 (인증 & 본인 글만)

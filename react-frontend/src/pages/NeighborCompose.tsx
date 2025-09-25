@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { createNeighborPost, uploadImage } from '../api/neighbor';
+import { apiUrl } from '../api/config';
 
 const Wrap = styled.div`
   max-width: 900px; margin: 0 auto; padding: 50px 20px 60px;
@@ -106,7 +107,7 @@ export default function NeighborCompose() {
       <Input type="file" accept="image/*" onChange={onSelectCover} />
       {coverUrl && (
         <div style={{ marginTop: 8 }}>
-          <img src={coverUrl} alt="cover" style={{ width: '100%', maxHeight: 240, objectFit: 'cover', borderRadius: 10 }} />
+          <img src={apiUrl(coverUrl)} alt="cover" style={{ width: '100%', maxHeight: 240, objectFit: 'cover', borderRadius: 10 }} />
         </div>
       )}
 
@@ -122,7 +123,7 @@ export default function NeighborCompose() {
       {images.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 8, marginTop: 8 }}>
           {images.map((src, idx) => (
-            <img key={idx} src={src} alt={`img-${idx}`} style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 8 }} />
+            <img key={idx} src={apiUrl(src)} alt={`img-${idx}`} style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 8 }} />
           ))}
         </div>
       )}
