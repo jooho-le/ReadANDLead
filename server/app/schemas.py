@@ -41,3 +41,14 @@ class PostOut(PostBase):
     date: datetime
     class Config:
         from_attributes = True
+
+
+class PostSummary(BaseModel):
+    id: int
+    author: str
+    title: str
+    cover: Optional[str] = None
+    date: datetime
+
+    class Config:
+        from_attributes = True

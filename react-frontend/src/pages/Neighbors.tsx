@@ -2,7 +2,16 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { Link, useNavigate } from 'react-router-dom';
-import { listNeighborPosts, type NeighborPost } from '../api/neighbor';
+import { listNeighborSummaries, type NeighborPostSummary } from '../api/neighbor';
+import fallbackPosts from '../data/neighbor_posts.json';
+
+const FALLBACK_SUMMARIES: NeighborPostSummary[] = (fallbackPosts as any[]).map((p, idx) => ({
+  id: p.id ?? `seed-${idx}`,
+  author: p.author ?? '익명',
+  title: p.title ?? '',
+  date: p.date ?? new Date().toISOString(),
+  cover: p.cover,
+}));
 
 const Wrap = styled.div`
   max-width: 1040px;
@@ -74,16 +83,18 @@ const CardMeta = styled.div`
 `;
 
 export default function Neighbors() {
-  const [posts, setPosts] = useState<NeighborPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [posts, setPosts] = useState<NeighborPostSummary[]>(FALLBACK_SUMMARIES);
+  const [loading, setLoading] = useState(FALLBACK_SUMMARIES.length === 0);
   const nav = useNavigate();
 
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
-        const r = await listNeighborPosts();
-        if (alive) setPosts(r || []);
+        const r = await listNeighborSummaries();
+        if (alive && Array.isArray(r) && r.length > 0) {
+          setPosts(r);
+        }
       } finally {
         if (alive) setLoading(false);
       }

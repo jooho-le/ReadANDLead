@@ -2,7 +2,7 @@
 import { apiFetch, apiUrl } from './config';
 
 export type NeighborPost = {
-  id: number;
+  id: number | string;
   author: string;
   title: string;
   date: string;
@@ -10,6 +10,8 @@ export type NeighborPost = {
   images?: string[];
   content_html: string;
 };
+
+export type NeighborPostSummary = Pick<NeighborPost, 'id' | 'author' | 'title' | 'date' | 'cover'>;
 
 export type NeighborComment = {
   id: number;
@@ -46,11 +48,26 @@ function resolvePostMedia(post: NeighborPost): NeighborPost {
   };
 }
 
+function resolveSummaryMedia(post: NeighborPostSummary): NeighborPostSummary {
+  const cover = post.cover ? apiUrl(post.cover) : undefined;
+  return {
+    ...post,
+    cover,
+  };
+}
+
 // 목록 조회 (공개)
 export function listNeighborPosts() {
   return apiFetch<NeighborPost[]>(EP.neighborPosts).then((posts) =>
     posts.map(resolvePostMedia),
   );
+}
+
+export function listNeighborSummaries(limit?: number) {
+  const qs = new URLSearchParams();
+  if (typeof limit === 'number') qs.set('limit', String(limit));
+  const path = qs.size > 0 ? `${EP.neighborPosts}/summary?${qs.toString()}` : `${EP.neighborPosts}/summary`;
+  return apiFetch<NeighborPostSummary[]>(path).then((posts) => posts.map(resolveSummaryMedia));
 }
 
 // 단건 조회 (공개)

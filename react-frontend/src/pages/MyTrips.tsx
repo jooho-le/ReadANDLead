@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { fetchTripSummary, deleteTrip } from '../api/trips';
-import { listNeighborPosts, NeighborPost } from '../api/neighbor';
+import { listNeighborSummaries, type NeighborPostSummary } from '../api/neighbor';
 import { me } from '../api/auth';
 import { Link } from 'react-router-dom';
 import RcIcon from '../components/RcIcon';
@@ -32,7 +32,7 @@ const BackBtn = styled.button`border:1px solid #e5e7eb;background:#fff;border-ra
 export default function MyTrips(){
   const [view, setView] = useState<'choose'|'trips'|'posts'>('choose');
   const [items, setItems] = useState<any[]>([]);
-  const [posts, setPosts] = useState<NeighborPost[]>([]);
+  const [posts, setPosts] = useState<NeighborPostSummary[]>([]);
   const [displayName, setDisplayName] = useState<string>('');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
@@ -55,7 +55,7 @@ export default function MyTrips(){
     }
     if(isLoggedIn!==true||!displayName) return;
     try{
-      const all=await listNeighborPosts();
+      const all=await listNeighborSummaries(100);
       setPosts(all.filter(p=>p.author===displayName));
     }catch{
       setPosts([]);

@@ -281,30 +281,37 @@ async function countNearbyAttractions(center: LatLng): Promise<number> {
 
   const centers = [center, ...dirs.map((ang) => ({
     lat: center.lat + dLat(Math.cos(ang * toDeg) * distKm),
-    lng: center.lng + dLng(Math.sin(ang * toDeg) * distKm, center.lat)
+    lng: center.lng + dLng(Math.sin(ang * toDeg) * distKm, center.lat),
   }))];
 
   const seen = new Set<string>();
-  let total = 0;
 
-  for (const c of centers) {
-    for (const code of codes) {
-      for (let page = 1; page <= 2; page++) {
-        const list = await categorySearch({ code, x: c.lng, y: c.lat, radius, page });
-        if (!list?.length) break;
-        for (const p of list) {
-          const id = String((p as any).id || '');
-          if (id && !seen.has(id)) {
-            seen.add(id);
-            total++;
+  const chunkSize = 3; // amount of geo samples to process concurrently
+  for (let i = 0; i < centers.length; i += chunkSize) {
+    const chunk = centers.slice(i, i + chunkSize);
+    await Promise.all(chunk.map(async (c) => {
+      await Promise.all(codes.map(async (code) => {
+        for (let page = 1; page <= 2; page++) {
+          let list: any[] = [];
+          try {
+            list = await categorySearch({ code, x: c.lng, y: c.lat, radius, page });
+          } catch {
+            break;
           }
+          if (!list?.length) break;
+          for (const p of list) {
+            const id = String((p as any).id || '');
+            if (id && !seen.has(id)) {
+              seen.add(id);
+            }
+          }
+          if (list.length < 15) break; // Kakao API page size; stop if we got the final page
         }
-        if (list.length < 15) break;
-      }
-    }
+      }));
+    }));
   }
 
-  return total;
+  return seen.size;
 }
 
 async function computeNearbyEvents(center: LatLng): Promise<number> {

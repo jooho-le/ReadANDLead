@@ -3,7 +3,7 @@ import json
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, load_only
 
 from .. import models, schemas
 from ..database import get_db
@@ -35,6 +35,17 @@ def _post_to_schema(post: models.NeighborPost) -> schemas.PostOut:
     )
 
 
+def _post_to_summary(post: models.NeighborPost) -> schemas.PostSummary:
+    author_name = post.author.display_name if post.author else "익명"
+    return schemas.PostSummary(
+        id=post.id,
+        author=author_name,
+        title=post.title,
+        cover=post.cover,
+        date=post.created_at,
+    )
+
+
 @router.get("", response_model=List[schemas.PostOut])
 def list_posts(db: Session = Depends(get_db)):
     posts = (
@@ -43,6 +54,27 @@ def list_posts(db: Session = Depends(get_db)):
         .all()
     )
     return [_post_to_schema(post) for post in posts]
+
+
+@router.get("/summary", response_model=List[schemas.PostSummary])
+def list_posts_summary(limit: int = 30, db: Session = Depends(get_db)):
+    safe_limit = max(1, min(limit, 100))
+    posts = (
+        db.query(models.NeighborPost)
+        .options(
+            load_only(
+                models.NeighborPost.id,
+                models.NeighborPost.title,
+                models.NeighborPost.cover,
+                models.NeighborPost.created_at,
+            ),
+            joinedload(models.NeighborPost.author).load_only(models.User.display_name),
+        )
+        .order_by(models.NeighborPost.created_at.desc())
+        .limit(safe_limit)
+        .all()
+    )
+    return [_post_to_summary(post) for post in posts]
 
 
 @router.get("/{post_id}", response_model=schemas.PostOut)
