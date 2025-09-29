@@ -3,15 +3,6 @@ import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { Link, useNavigate } from 'react-router-dom';
 import { listNeighborSummaries, type NeighborPostSummary } from '../api/neighbor';
-import fallbackPosts from '../data/neighbor_posts.json';
-
-const FALLBACK_SUMMARIES: NeighborPostSummary[] = (fallbackPosts as any[]).map((p, idx) => ({
-  id: p.id ?? `seed-${idx}`,
-  author: p.author ?? '익명',
-  title: p.title ?? '',
-  date: p.date ?? new Date().toISOString(),
-  cover: p.cover,
-}));
 
 const Wrap = styled.div`
   max-width: 1040px;
@@ -83,8 +74,9 @@ const CardMeta = styled.div`
 `;
 
 export default function Neighbors() {
-  const [posts, setPosts] = useState<NeighborPostSummary[]>(FALLBACK_SUMMARIES);
-  const [loading, setLoading] = useState(FALLBACK_SUMMARIES.length === 0);
+  const [posts, setPosts] = useState<NeighborPostSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
   const nav = useNavigate();
 
   useEffect(() => {
@@ -92,9 +84,13 @@ export default function Neighbors() {
     (async () => {
       try {
         const r = await listNeighborSummaries();
-        if (alive && Array.isArray(r) && r.length > 0) {
-          setPosts(r);
-        }
+        if (!alive) return;
+        setPosts(Array.isArray(r) ? r : []);
+        setError('');
+      } catch (err) {
+        if (!alive) return;
+        setError('이웃 글을 불러오지 못했어요. 다시 시도해 주세요.');
+        setPosts([]);
       } finally {
         if (alive) setLoading(false);
       }
@@ -112,6 +108,8 @@ export default function Neighbors() {
 
       {loading ? (
         <div>불러오는 중…</div>
+      ) : error ? (
+        <div>{error}</div>
       ) : posts.length === 0 ? (
         <div>아직 작성된 글이 없어요. 첫 번째 글을 써보세요!</div>
       ) : (
