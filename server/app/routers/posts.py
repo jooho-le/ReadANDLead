@@ -8,6 +8,9 @@ from sqlalchemy.orm import Session, joinedload, load_only
 from .. import models, schemas
 from ..database import get_db
 from ..deps import get_current_user_required
+from datetime import datetime, timezone, timedelta
+
+KST = timezone(timedelta(hours=9))
 
 router = APIRouter()
 
@@ -97,6 +100,7 @@ def create_post(
         cover=payload.cover,
         content_html=payload.content_html,
         images=json.dumps(payload.images) if payload.images else None,
+        created_at=datetime.now(KST),   # 한국 시간으로 저장
     )
     db.add(post)
     db.commit()
