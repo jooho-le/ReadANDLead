@@ -11,6 +11,7 @@ import {
   StyledSubmitButton,
   Button,
 } from '../components/ui';
+import TripPlanModal from '../components/routes/TripPlanModal';
 
 const Page = styled.div`background:#fff; padding:20px;`;
 const Card = styled.div`background:#fff;border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.08);padding:16px;`;
@@ -58,6 +59,7 @@ export default function PlaceToBook(){
 
   const bookMarkerRef = useRef<any>(null);
   const bookInfoRef = useRef<any>(null);
+  const [planOpen, setPlanOpen] = useState(false);
 
   // 현재 위치 → 초기 중심
   useEffect(()=> {
@@ -238,12 +240,17 @@ export default function PlaceToBook(){
 
         {/* 지도 */}
         <Title>위치 기반 문학 체험</Title>
+        <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8 }}>
+          <Button onClick={()=>setPlanOpen(true)}>여행계획 생성</Button>
+        </div>
         <MapBox>
           <KakaoMap center={center} onReady={setMap} />
         </MapBox>
 
         {/* 하단: 주변 추천 패널 */}
         <DiscoveryPanelKakao map={map} center={center} origin={origin} />
+
+        <TripPlanModal isOpen={planOpen} onClose={()=>setPlanOpen(false)} />
       </Card>
     </Page>
   );

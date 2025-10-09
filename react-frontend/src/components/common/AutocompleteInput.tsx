@@ -19,10 +19,12 @@ type Props = {
 const Wrap = styled.div`
   position: relative;
   flex: 1;
+  /* flex 컨테이너에서 자식이 내용폭 때문에 넘치지 않도록 */
+  min-width: 0;
 `;
 
 const Input = styled.input`
-  width: 100%;
+  width: 80%;
   border: 1px solid #ddd;
   border-radius: 14px; /* 캡슐이 버튼을 덮지 않도록 완만한 라운드 */
   padding: 12px 16px;

@@ -11,6 +11,7 @@ import {
   StyledSubmitButton,
   Button,
 } from '../components/ui';
+import TripPlanModal from '../components/routes/TripPlanModal';
 
 // 페이지 스타일
 const Page = styled.div`background:#fff; padding:20px;`;
@@ -48,6 +49,7 @@ export default function LocationMap() {
   const [origin, setOrigin] = useState<LatLng | undefined>(undefined);
   const [searchTerm, setSearchTerm] = useState('');
   const [result, setResult] = useState<{ book: string; location?: string; event?: string } | null>(null);
+  const [planOpen, setPlanOpen] = useState(false);
 
   const bookMarkerRef = useRef<any>(null);
   const bookInfoRef = useRef<any>(null);
@@ -209,11 +211,16 @@ export default function LocationMap() {
         </SearchSection>
 
         <Title>위치 기반 문학 체험</Title>
+        <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8 }}>
+          <Button onClick={()=>setPlanOpen(true)}>여행계획 생성</Button>
+        </div>
         <MapBox>
           <KakaoMap center={center} onReady={setMap} />
         </MapBox>
 
         <DiscoveryPanelKakao map={map} center={center} origin={origin} />
+
+        <TripPlanModal isOpen={planOpen} onClose={()=>setPlanOpen(false)} />
       </Card>
     </Page>
   );
