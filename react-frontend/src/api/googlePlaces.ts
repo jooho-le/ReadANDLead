@@ -24,13 +24,22 @@ function service(): any {
 
 export async function searchPlaceByText(query: string) {
   await loadGooglePlaces();
-  return new Promise<any|null>((resolve) => {
-    service().textSearch({ query }, (results: any, status: string) => {
-      if (status === (window as any).google.maps.places.PlacesServiceStatus.OK && results?.length) {
-        resolve(results[0]);
-      } else resolve(null);
-    });
+  const p = new Promise<any|null>((resolve) => {
+    try {
+      service().textSearch({ query }, (results: any, status: string) => {
+        if (status === (window as any).google.maps.places.PlacesServiceStatus.OK && results?.length) {
+          resolve(results[0]);
+        } else resolve(null);
+      });
+    } catch {
+      resolve(null);
+    }
   });
+  // 안전 타임아웃(1.5s): 구글 키/권한 문제 등으로 콜백이 지연될 때 UI가 멈추지 않게 함
+  return Promise.race([
+    p,
+    new Promise<null>((res) => setTimeout(() => res(null), 1500)),
+  ]);
 }
 
 export async function getPlaceDetails(placeId: string) {

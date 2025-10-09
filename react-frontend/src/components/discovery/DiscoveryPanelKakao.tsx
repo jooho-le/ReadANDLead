@@ -564,26 +564,36 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
     });
     setRows(list);
 
-    // Google Places로 평점/영업중 여부 보강 (가능하면)
-    try {
-      await loadGooglePlaces();
-      await Promise.all(
-        list.slice(0, 30).map(async (it) => {
-          try {
-            const query = `${it.name} ${it.addr || ''}`.trim();
-            const cand: any = await searchPlaceByText(query);
-            if (cand) {
-              if (typeof cand.rating === 'number') it.rating = cand.rating;
-              if (typeof cand.user_ratings_total === 'number') it.ratingCount = cand.user_ratings_total;
-              if (typeof cand.opening_hours?.open_now === 'boolean') it.openNow = cand.opening_hours.open_now;
-            }
-          } catch {}
-        })
-      );
-      setRows([...list]);
-    } catch {
-      // 구글 키 없음/오류 시 보강 생략
-    }
+    // Google Places 보강은 백그라운드로 수행하여 UI 블로킹 방지
+    (async () => {
+      try {
+        await loadGooglePlaces();
+      } catch {
+        return; // 키 오류/차단 시 즉시 중단
+      }
+      const tasks = list.slice(0, 30).map(async (it) => {
+        try {
+          const query = `${it.name} ${it.addr || ''}`.trim();
+          // 안전 타임아웃(1.5s) — 구글 콜백 미호출 대비
+          const cand: any = await Promise.race([
+            searchPlaceByText(query),
+            new Promise((res) => setTimeout(() => res(null), 1500)),
+          ]);
+          if (cand) {
+            if (typeof (cand as any).rating === 'number') it.rating = (cand as any).rating;
+            if (typeof (cand as any).user_ratings_total === 'number') it.ratingCount = (cand as any).user_ratings_total;
+            if (typeof (cand as any).opening_hours?.open_now === 'boolean') it.openNow = (cand as any).opening_hours.open_now;
+          }
+        } catch {}
+      });
+      await Promise.allSettled(tasks);
+      // 데이터 보강된 내용만 살짝 갱신
+      setRows((prev) => {
+        // 동일 길이면 최신 list로 교체
+        if (Array.isArray(prev) && prev.length === list.length) return [...list];
+        return prev;
+      });
+    })();
     return list.length > 0;
   }
 

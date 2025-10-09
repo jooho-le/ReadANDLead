@@ -32,7 +32,16 @@ const Btn = styled.button`
 const ResultList = styled.div`
   position: relative; /* 클릭 우선순위 확보 */
   z-index: 50;
-  max-width:720px;margin:12px auto 0;border:1px solid #e9e9e9;border-radius:12px;background:#fafafa;overflow:hidden;
+  max-width: 720px;
+  margin: 12px auto 0;
+  border: 1px solid #e9e9e9;
+  border-radius: 12px;
+  background: #fafafa;
+  /* 리스트 자체만 스크롤 되도록 */
+  max-height: 360px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 `;
 const ResultItem = styled.button.attrs({ type: 'button' })`
   display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #eee;background:#fff;padding:12px 14px;cursor:pointer;
