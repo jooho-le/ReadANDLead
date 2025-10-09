@@ -136,7 +136,8 @@ export const InputGroup = styled.div`
   display: flex;
   align-items: center;
   width: 100%;
-  overflow: hidden; /* 둥근 모서리 맞춤 */
+  /* 자동완성 드롭다운이 잘리지 않도록 가시 영역 유지 */
+  overflow: visible;
   border-radius: 12px;
   flex-wrap: wrap;
 `;
