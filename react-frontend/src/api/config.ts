@@ -113,6 +113,11 @@ export async function apiFetch<T = any>(
     credentials: "include",
   });
 
+   // ✅ 204 (No Content) 응답은 body가 없으므로 바로 반환
+  if (res.status === 204) {
+    return undefined as T;
+  }
+
   if (!res.ok) {
     // 에러 바디가 JSON/문자열인 경우 우선 추출
     const text = await res.text().catch(() => "");
