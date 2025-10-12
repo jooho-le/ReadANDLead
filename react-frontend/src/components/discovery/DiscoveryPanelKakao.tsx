@@ -11,6 +11,7 @@ import { fetchKopisPerformances } from '../../api/kopis';
 import { fetchCultureNearby } from '../../api/culture';
 import { useKakaoMarkers } from './useKakaoMarkers';
 import AutocompleteInput, { Suggestion } from '../common/AutocompleteInput';
+import { addToDraft, readDraft } from '../../store/tripDraft';
 import {
   createTrip as apiCreateTrip,
   upsertPlace,
@@ -121,17 +122,27 @@ const Loading = styled.div`
   padding: 12px 0;
 `;
 
-const PlannerOverlay = styled.div`
+/* 중앙 팝업형 길찾기 */
+const PlannerBackdrop = styled.div`
   position: fixed;
-  right: 24px;
-  bottom: 24px;
-  width: 360px;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 70;
+`;
+const PlannerModal = styled.div`
+  position: relative;
+  width: 400px;
+  max-width: min(92vw, 420px);
+  max-height: 80vh;
   background: #fff;
   border: 1px solid #e6e6e6;
   border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-  z-index: 50;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
   padding: 12px;
+  overflow: visible; /* 드롭다운이 잘리지 않도록 */
 `;
 const PlannerTitle = styled.div`
   font-weight: 800;
@@ -140,11 +151,23 @@ const PlannerTitle = styled.div`
   justify-content: space-between;
   align-items: center;
 `;
+const PlannerClose = styled.button`
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  border: 1px solid #e6e6e6;
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 12px;
+  cursor: pointer;
+`;
 const PlannerRow = styled.div`
   display: flex;
   gap: 8px;
   align-items: center;
   margin: 8px 0;
+  > * { min-width: 0; }
 `;
 const Input = styled.input`
   flex: 1;
@@ -199,7 +222,11 @@ const DialogBtn = styled.button`
   cursor: pointer;
 `;
 
-const DetailBackdrop = styled(Backdrop)``;
+const DetailBackdrop = styled(Backdrop)`
+  /* 상세 모달은 화면 중앙보다 약간 아래에 위치 */
+  align-items: flex-start;
+  padding-top: min(10vh, 72px);
+`;
 const DetailSheet = styled.div`
   background: #fff;
   border-radius: 16px;
@@ -222,10 +249,12 @@ const Grid = styled.div`
 `;
 const Photo = styled.img`
   width: 100%;
-  height: 220px;
-  object-fit: cover;
+  /* 더 낮은 가변 높이로 잘림 느낌 최소화 */
+  height: clamp(90px, 18vh, 140px);
+  object-fit: contain; /* 비율 유지, 잘림 없음 */
+  background: #f3f4f6;
   border-radius: 12px;
-  background: #eee;
+  display: block;
 `;
 const Line = styled.div`
   font-size: 0.95rem;
@@ -272,6 +301,9 @@ type PlaceItem = {
   url?: string;
   loc?: LatLng;
   type: 'museum' | 'cafe' | 'hot';
+  rating?: number;
+  ratingCount?: number;
+  openNow?: boolean;
 };
 
 type RowItem = EventItem | PlaceItem;
@@ -315,8 +347,8 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
   const [sortKey, setSortKey] = useState<
     'distance' | 'rating' | 'name' | 'openFirst'
   >('distance');
-  const [minRating, setMinRating] = useState(0); // Kakao에는 평점 없음 → disabled
-  const [openNowOnly, setOpenNowOnly] = useState(false); // Kakao에는 영업중 정보 없음 → disabled
+  const [minRating, setMinRating] = useState(0);
+  const [openNowOnly, setOpenNowOnly] = useState(false);
   const [todayOnly, setTodayOnly] = useState(false); // 공연/전시에만 의미
 
   // 길찾기 플래너 + 자동완성 (외부 길찾기)
@@ -351,7 +383,8 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
 
   const safeCenter = origin || center;
   const infoRef = useRef<any>(null);
-  const { pushMarker, clearMarkers } = useKakaoMarkers();
+  const { pushMarker, clearMarkers, clearCategoryMarkers } = useKakaoMarkers();
+  const [draftRev, setDraftRev] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -359,6 +392,32 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
       infoRef.current = new window.kakao.maps.InfoWindow({ removable: true });
     })();
   }, []);
+
+  // 초안 변경 브로드캐스트 수신 → 보라색 마커 갱신
+  useEffect(() => {
+    function onDraftChanged(){ setDraftRev(v=>v+1); }
+    window.addEventListener('trip-draft-changed', onDraftChanged);
+    return () => window.removeEventListener('trip-draft-changed', onDraftChanged);
+  }, []);
+
+  // 계획에 담은 장소 마커(보라색) 표시 유지
+  useEffect(() => {
+    if (!map || !(window as any).kakao) return;
+    const kakao = (window as any).kakao;
+    function addDraftMarker(ll: LatLng, title: string, addr?: string) {
+      const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24'><circle cx='12' cy='12' r='8' fill='#8b5cf6' stroke='white' stroke-width='2'/></svg>`;
+      const url = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+      const image = new kakao.maps.MarkerImage(url, new kakao.maps.Size(24, 24), { offset: new kakao.maps.Point(12, 12) });
+      const marker = new kakao.maps.Marker({ map, position: new kakao.maps.LatLng(ll.lat, ll.lng), title, image });
+      const html = `<div style="max-width:220px"><div style="font-weight:700;margin-bottom:4px">${title}</div><div style="font-size:12px;color:#555">${addr || ''}</div><div style='margin-top:4px;font-size:12px;color:#8b5cf6'>계획에 담긴 장소</div></div>`;
+      kakao.maps.event.addListener(marker, 'click', () => { infoRef.current.setContent(html); infoRef.current.open(map, marker); });
+      pushMarker('draft' as any, marker);
+    }
+    // refresh
+    clearMarkers('draft' as any);
+    const list = readDraft();
+    list.forEach((s: any) => { if (s?.lat != null && s?.lng != null) addDraftMarker({ lat: s.lat, lng: s.lng }, s.name, s.addr); });
+  }, [map, draftRev]);
 
   // 여행 일정 담기 모달 상태
   const [addOpen, setAddOpen] = useState(false);
@@ -504,6 +563,37 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
       if (item.loc) addMarker(type, item.loc, item.name, item.addr);
     });
     setRows(list);
+
+    // Google Places 보강은 백그라운드로 수행하여 UI 블로킹 방지
+    (async () => {
+      try {
+        await loadGooglePlaces();
+      } catch {
+        return; // 키 오류/차단 시 즉시 중단
+      }
+      const tasks = list.slice(0, 30).map(async (it) => {
+        try {
+          const query = `${it.name} ${it.addr || ''}`.trim();
+          // 안전 타임아웃(1.5s) — 구글 콜백 미호출 대비
+          const cand: any = await Promise.race([
+            searchPlaceByText(query),
+            new Promise((res) => setTimeout(() => res(null), 1500)),
+          ]);
+          if (cand) {
+            if (typeof (cand as any).rating === 'number') it.rating = (cand as any).rating;
+            if (typeof (cand as any).user_ratings_total === 'number') it.ratingCount = (cand as any).user_ratings_total;
+            if (typeof (cand as any).opening_hours?.open_now === 'boolean') it.openNow = (cand as any).opening_hours.open_now;
+          }
+        } catch {}
+      });
+      await Promise.allSettled(tasks);
+      // 데이터 보강된 내용만 살짝 갱신
+      setRows((prev) => {
+        // 동일 길이면 최신 list로 교체
+        if (Array.isArray(prev) && prev.length === list.length) return [...list];
+        return prev;
+      });
+    })();
     return list.length > 0;
   }
 
@@ -616,6 +706,9 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
     setPlannerOpen(false);
     setLoading(true);
     try {
+      // 이전 카테고리 마커만 정리(계획 마커는 유지)
+      clearCategoryMarkers();
+      try { infoRef.current?.close?.(); } catch {}
       let ok = false;
       if (kind === 'cafe' || kind === 'hot' || kind === 'museum') {
         ok = await loadPlaces(kind);
@@ -633,18 +726,40 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
     }
   }
 
-  /* ---------- 정렬/필터 (UI 유지) ---------- */
+  /* ---------- 정렬/필터 ---------- */
   const filteredSorted = useMemo(() => {
     let arr = [...rows];
     if (todayOnly) {
       // 단순 표시 유지 — 기간 문자열이 있는지만 체크
       arr = arr.filter((r) => (r.kind === 'place' ? true : !!(r as EventItem).period));
     }
+
+    // 최소 별점 필터 (장소만, 평점 없는 항목은 제외)
+    if (minRating > 0) {
+      arr = arr.filter((r) =>
+        r.kind !== 'place' ? true : ((r as PlaceItem).rating ?? -1) >= minRating
+      );
+    }
+    // 영업중만 (장소만, 상태 없는 항목은 제외)
+    if (openNowOnly) {
+      arr = arr.filter((r) =>
+        r.kind !== 'place' ? true : Boolean((r as PlaceItem).openNow)
+      );
+    }
     arr.sort((a, b) => {
       if (sortKey === 'name') {
         const an = a.kind === 'place' ? (a as PlaceItem).name : (a as EventItem).title;
         const bn = b.kind === 'place' ? (b as PlaceItem).name : (b as EventItem).title;
         return an.localeCompare(bn);
+      } else if (sortKey === 'rating') {
+        const ra = a.kind === 'place' ? (a as PlaceItem).rating ?? -1 : -1;
+        const rb = b.kind === 'place' ? (b as PlaceItem).rating ?? -1 : -1;
+        if (rb !== ra) return rb - ra; // 내림차순
+        // 동률이면 거리로 보조 정렬
+      } else if (sortKey === 'openFirst') {
+        const oa = a.kind === 'place' ? Number(Boolean((a as PlaceItem).openNow)) : 0;
+        const ob = b.kind === 'place' ? Number(Boolean((b as PlaceItem).openNow)) : 0;
+        if (ob !== oa) return ob - oa; // true 우선
       }
       // 거리 기준
       const la = a.kind === 'place' ? (a as PlaceItem).loc : (a as EventItem).loc;
@@ -659,7 +774,7 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
       return an.localeCompare(bn);
     });
     return arr;
-  }, [rows, sortKey, todayOnly, safeCenter]);
+  }, [rows, sortKey, todayOnly, safeCenter, minRating, openNowOnly]);
 
   /* ---------- 상세 패널 ---------- */
   async function openDetail(r: RowItem) {
@@ -737,16 +852,7 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
       to || '목적지'
     )}`;
   }
-  function naverExternal(from: string, to: string) {
-    return `https://map.naver.com/v5/directions/${encodeURIComponent(from || '내 위치')}/${encodeURIComponent(
-      to || '목적지'
-    )}`;
-  }
-  function googleExternal(from: string, to: string) {
-    return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(from || 'My Location')}&destination=${encodeURIComponent(
-      to || 'Destination'
-    )}`;
-  }
+  // 외부 길찾기는 카카오만 유지
 
   async function fetchPlaceSuggestions(q: string): Promise<Suggestion[]> {
     if (!q.trim()) return [];
@@ -785,7 +891,7 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
         </Chip>
       </ChipRow>
 
-      {/* 정렬/필터 (모양 유지) */}
+      {/* 정렬/필터 */}
       <TopBar>
         <Select value={sortKey} onChange={(e) => setSortKey(e.target.value as any)}>
           <option value="distance">정렬: 거리순</option>
@@ -794,7 +900,7 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
           <option value="openFirst">정렬: 영업중 우선</option>
         </Select>
 
-        <RangeWrap title="Kakao Places는 평점을 제공하지 않아요">
+        <RangeWrap>
           최소 별점
           <Range
             min={0}
@@ -802,13 +908,12 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
             step={0.5}
             value={minRating}
             onChange={(e) => setMinRating(parseFloat(e.target.value))}
-            disabled
           />
           <span>{minRating.toFixed(1)}</span>
         </RangeWrap>
 
-        <Checkbox title="Kakao Places는 영업중 정보를 제공하지 않아요">
-          <input type="checkbox" checked={openNowOnly} onChange={(e) => setOpenNowOnly(e.target.checked)} disabled />
+        <Checkbox>
+          <input type="checkbox" checked={openNowOnly} onChange={(e) => setOpenNowOnly(e.target.checked)} />
           지금 영업중만
         </Checkbox>
 
@@ -842,7 +947,7 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
                         <A href={naverLink(p.name)} target="_blank" rel="noreferrer">
                           네이버
                         </A>
-                        <A href={googleLink(p.name)} target="_blank" rel="noreferrer">
+                      <A href={googleLink(p.name)} target="_blank" rel="noreferrer">
                           Google
                         </A>
                         {p.phone && <A href={`tel:${p.phone.replace(/\s+/g, '')}`}>전화</A>}
@@ -857,13 +962,9 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
                       <SmallBtn
                         onClick={(e) => {
                           e.stopPropagation();
-                          setAddTarget({
-                            extId: p.id,
-                            name: p.name,
-                            addr: p.addr,
-                            loc: p.loc,
-                          });
-                          setAddOpen(true);
+                          addToDraft({ name: p.name, addr: p.addr, lat: p.loc?.lat, lng: p.loc?.lng });
+                          setDraftRev(v=>v+1);
+                          setDialog({ open: true, title: '추가됨', msg: '여행계획 초안에 담았어요. 우측 상단의 “여행계획 생성”에서 저장하세요.' });
                         }}
                       >
                         일정에 추가
@@ -908,6 +1009,16 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
                     <SmallBtn
                       onClick={(ev) => {
                         ev.stopPropagation();
+                        addToDraft({ name: e.title, addr: e.addr || e.venue, lat: e.loc?.lat, lng: e.loc?.lng });
+                        setDraftRev(v=>v+1);
+                        setDialog({ open: true, title: '추가됨', msg: '여행계획 초안에 담았어요. 우측 상단의 “여행계획 생성”에서 저장하세요.' });
+                      }}
+                    >
+                      일정에 추가
+                    </SmallBtn>
+                    <SmallBtn
+                      onClick={(ev) => {
+                        ev.stopPropagation();
                         openPlannerFor(e);
                       }}
                     >
@@ -923,11 +1034,10 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
 
       {/* 길찾기 플래너 (자동완성으로 외부 길찾기 열기) */}
       {plannerOpen && (
-        <PlannerOverlay>
-          <PlannerTitle>
-            길찾기
-            <Btn onClick={() => setPlannerOpen(false)}>닫기</Btn>
-          </PlannerTitle>
+        <PlannerBackdrop onClick={() => setPlannerOpen(false)}>
+          <PlannerModal onClick={(e)=>e.stopPropagation()}>
+            <PlannerTitle>길찾기</PlannerTitle>
+            <PlannerClose onClick={() => setPlannerOpen(false)}>✕</PlannerClose>
 
           <PlannerRow>
             <AutocompleteInput
@@ -979,20 +1089,9 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
             >
               카카오 길찾기 열기
             </BtnPrimary>
-            <Btn onClick={() => window.open(naverExternal(fromText, toText), '_blank')}>네이버</Btn>
-            <Btn onClick={() => window.open(googleExternal(fromText, toText), '_blank')}>Google</Btn>
-            <Btn
-              onClick={() => {
-                setFromText('');
-                setToText('');
-                setFromLL(null);
-                setToLL(null);
-              }}
-            >
-              입력 지우기
-            </Btn>
           </PlannerRow>
-        </PlannerOverlay>
+          </PlannerModal>
+        </PlannerBackdrop>
       )}
 
       {/* 중앙 팝업 */}
@@ -1153,4 +1252,3 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
     </Panel>
   );
 }
-

@@ -24,3 +24,14 @@ class NeighborPost(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(KST), nullable=False)
     updated_at = Column(DateTime, default=lambda: datetime.now(KST), onupdate=lambda: datetime.now(KST), nullable=False)
     author = relationship("User", back_populates="posts")
+
+class NeighborComment(Base):
+    __tablename__ = "neighbor_comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    post_id = Column(Integer, ForeignKey("neighbor_posts.id", ondelete="CASCADE"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    author = relationship("User")

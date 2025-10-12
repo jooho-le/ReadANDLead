@@ -1,10 +1,10 @@
 import { useRef } from 'react';
 
-type Kind = 'performance' | 'exhibition' | 'museum' | 'cafe' | 'hot';
+type Kind = 'performance' | 'exhibition' | 'museum' | 'cafe' | 'hot' | 'draft';
 
 export function useKakaoMarkers() {
   const groups = useRef<Record<Kind, any[]>>({
-    performance: [], exhibition: [], museum: [], cafe: [], hot: [],
+    performance: [], exhibition: [], museum: [], cafe: [], hot: [], draft: [],
   });
 
   function pushMarker(kind: Kind, marker: any) {
@@ -12,11 +12,14 @@ export function useKakaoMarkers() {
   }
   function clearMarkers(kind?: Kind) {
     const kakao = (window as any).kakao;
-    const kinds: Kind[] = kind ? [kind] : ['performance','exhibition','museum','cafe','hot'];
+    const kinds: Kind[] = kind ? [kind] : ['performance','exhibition','museum','cafe','hot','draft'];
     kinds.forEach(k => {
       groups.current[k].forEach(m => m.setMap(null));
       groups.current[k] = [];
     });
   }
-  return { pushMarker, clearMarkers };
+  function clearCategoryMarkers() {
+    (['performance','exhibition','museum','cafe','hot'] as Kind[]).forEach(k => clearMarkers(k));
+  }
+  return { pushMarker, clearMarkers, clearCategoryMarkers };
 }

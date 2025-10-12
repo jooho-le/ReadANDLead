@@ -52,3 +52,13 @@ class PostSummary(BaseModel):
 
     class Config:
         from_attributes = True
+
+class CommentOut(BaseModel):
+    id: int
+    post_id: int
+    author: str
+    content: str
+    date: datetime
+
+    class Config:
+        orm_mode = True
