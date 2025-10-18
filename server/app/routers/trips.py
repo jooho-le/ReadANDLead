@@ -848,6 +848,25 @@ def claim_reward(trip_id: str):
     conn.close()
     return {"ok": True, "message": f"'{(book['book_title'] if book else '')}' 미션 클리어! 리워드가 발급되었습니다."}
 
+@router.get("/rewards")
+def list_rewards():
+    """사용자가 획득한 리워드(배지) 목록을 최신순으로 반환"""
+    user_id = _get_user_id_from_header()
+    conn = _conn()
+    rows = conn.execute(
+        "SELECT trip_id, book_title, claimed_at FROM rewards WHERE user_id=? ORDER BY id DESC LIMIT 50",
+        (user_id,)
+    ).fetchall()
+    conn.close()
+    out = []
+    for r in rows:
+        out.append({
+            "trip_id": r["trip_id"],
+            "book_title": r["book_title"] or "",
+            "claimed_at": r["claimed_at"],
+        })
+    return out
+
 # -------------------- Book context (for nice popup) --------------------
 @router.get("/book-context")
 def get_book_context(title: str):

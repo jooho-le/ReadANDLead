@@ -11,7 +11,6 @@ import { fetchKopisPerformances } from '../../api/kopis';
 import { fetchCultureNearby } from '../../api/culture';
 import { useKakaoMarkers } from './useKakaoMarkers';
 import AutocompleteInput, { Suggestion } from '../common/AutocompleteInput';
-import { addToDraft, readDraft } from '../../store/tripDraft';
 import {
   createTrip as apiCreateTrip,
   upsertPlace,
@@ -384,7 +383,6 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
   const safeCenter = origin || center;
   const infoRef = useRef<any>(null);
   const { pushMarker, clearMarkers, clearCategoryMarkers } = useKakaoMarkers();
-  const [draftRev, setDraftRev] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -393,12 +391,7 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
     })();
   }, []);
 
-  // 초안 변경 브로드캐스트 수신 → 보라색 마커 갱신
-  useEffect(() => {
-    function onDraftChanged(){ setDraftRev(v=>v+1); }
-    window.addEventListener('trip-draft-changed', onDraftChanged);
-    return () => window.removeEventListener('trip-draft-changed', onDraftChanged);
-  }, []);
+  // (삭제됨) 일정 초안 변경 브로드캐스트
 
   // 계획에 담은 장소 마커(보라색) 표시 유지
   useEffect(() => {
@@ -415,9 +408,9 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
     }
     // refresh
     clearMarkers('draft' as any);
-    const list = readDraft();
+    const list: any[] = [];
     list.forEach((s: any) => { if (s?.lat != null && s?.lng != null) addDraftMarker({ lat: s.lat, lng: s.lng }, s.name, s.addr); });
-  }, [map, draftRev]);
+  }, [map]);
 
   // 여행 일정 담기 모달 상태
   const [addOpen, setAddOpen] = useState(false);
@@ -962,16 +955,6 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
                       <SmallBtn
                         onClick={(e) => {
                           e.stopPropagation();
-                          addToDraft({ name: p.name, addr: p.addr, lat: p.loc?.lat, lng: p.loc?.lng });
-                          setDraftRev(v=>v+1);
-                          setDialog({ open: true, title: '추가됨', msg: '여행계획 초안에 담았어요. 우측 상단의 “여행계획 생성”에서 저장하세요.' });
-                        }}
-                      >
-                        일정에 추가
-                      </SmallBtn>
-                      <SmallBtn
-                        onClick={(e) => {
-                          e.stopPropagation();
                           openPlannerFor(p);
                         }}
                       >
@@ -1006,16 +989,7 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
                       </Actions>
                     </div>
 
-                    <SmallBtn
-                      onClick={(ev) => {
-                        ev.stopPropagation();
-                        addToDraft({ name: e.title, addr: e.addr || e.venue, lat: e.loc?.lat, lng: e.loc?.lng });
-                        setDraftRev(v=>v+1);
-                        setDialog({ open: true, title: '추가됨', msg: '여행계획 초안에 담았어요. 우측 상단의 “여행계획 생성”에서 저장하세요.' });
-                      }}
-                    >
-                      일정에 추가
-                    </SmallBtn>
+                    {/* 일정 추가하기 제거 */}
                     <SmallBtn
                       onClick={(ev) => {
                         ev.stopPropagation();

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { fetchTripSummary, deleteTrip } from '../api/trips';
+import { fetchTripSummary, deleteTrip, fetchRewards } from '../api/trips';
 import { listNeighborSummaries, type NeighborPostSummary } from '../api/neighbor';
 import { me } from '../api/auth';
 import { Link } from 'react-router-dom';
@@ -37,8 +37,10 @@ export default function MyTrips(){
   const [displayName, setDisplayName] = useState<string>('');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [diaryByTrip, setDiaryByTrip] = useState<Record<string, DiaryEntry[]>>({});
+  const [rewards, setRewards] = useState<Array<{trip_id:string; book_title:string; claimed_at:string}>>([]);
 
   useEffect(()=>{(async()=>{try{setItems(await fetchTripSummary());}catch{}})();},[]);
+  useEffect(()=>{(async()=>{try{setRewards(await fetchRewards());}catch{setRewards([]);}})();},[]);
   useEffect(()=>{(async()=>{
     // 최근 일기 3개까지 미리보기로 로드
     try{
@@ -93,7 +95,21 @@ export default function MyTrips(){
       {view==='trips' && (
         <>
           <BackBtn onClick={()=>setView('choose')}>← 돌아가기</BackBtn>
-        <Grid>
+          {/* 획득 배지 */}
+          {rewards.length>0 && (
+            <div style={{border:'1px solid #eee', background:'#fff', borderRadius:12, padding:14, marginBottom:12}}>
+              <div style={{fontWeight:900, marginBottom:8}}>획득 배지</div>
+              <div style={{display:'flex', flexWrap:'wrap', gap:10}}>
+                {rewards.map((r,idx)=> (
+                  <div key={idx} title={new Date(r.claimed_at).toLocaleString()} style={{display:'flex', alignItems:'center', gap:8, border:'1px solid #eef2f7', borderRadius:999, padding:'6px 10px', background:'#f8fafc'}}>
+                    <span style={{display:'inline-block', width:10, height:10, borderRadius:999, background:'#10b981'}} />
+                    <span style={{fontSize:14, color:'#111827'}}>{r.book_title || '배지'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <Grid>
           {items.map(it => (
             <Card key={it.trip_id}>
               <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6}}>
