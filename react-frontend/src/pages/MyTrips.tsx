@@ -6,6 +6,7 @@ import { me } from '../api/auth';
 import { Link } from 'react-router-dom';
 import RcIcon from '../components/RcIcon';
 import { FaMapMarkedAlt, FaUsers } from 'react-icons/fa';
+import { listDiary, type DiaryEntry } from '../api/diary';
 
 const Wrap = styled.div`max-width:1040px;margin:0 auto;   padding: 30px 20px 20px;
 
@@ -35,8 +36,19 @@ export default function MyTrips(){
   const [posts, setPosts] = useState<NeighborPostSummary[]>([]);
   const [displayName, setDisplayName] = useState<string>('');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [diaryByTrip, setDiaryByTrip] = useState<Record<string, DiaryEntry[]>>({});
 
   useEffect(()=>{(async()=>{try{setItems(await fetchTripSummary());}catch{}})();},[]);
+  useEffect(()=>{(async()=>{
+    // 최근 일기 3개까지 미리보기로 로드
+    try{
+      const map: Record<string, DiaryEntry[]> = {};
+      for (const it of items){
+        try{ map[it.trip_id] = await listDiary(it.trip_id, { limit: 3 }); } catch{}
+      }
+      setDiaryByTrip(map);
+    }catch{}
+  })();},[items]);
   useEffect(()=>{(async()=>{
     try{
       const profile=await me();
@@ -98,6 +110,19 @@ export default function MyTrips(){
                   {it.proofs.slice(0,3).map((u:string, i:number)=> (
                     <img key={i} src={u} alt="proof" style={{width:72, height:48, objectFit:'cover', borderRadius:8, background:'#f3f4f6'}} />
                   ))}
+                </div>
+              )}
+              {/* 최근 일기 미리보기 */}
+              {Array.isArray(diaryByTrip[it.trip_id]) && diaryByTrip[it.trip_id].length>0 && (
+                <div style={{marginTop:10}}>
+                  <div style={{fontWeight:700, marginBottom:6}}>최근 일기</div>
+                  <div style={{display:'grid', gap:6}}>
+                    {diaryByTrip[it.trip_id].map((e)=> (
+                      <div key={e.id} style={{border:'1px solid #eef2f7', borderRadius:8, padding:'8px 10px', color:'#374151', fontSize:14}}>
+                        {(e.text||'').slice(0,100) || (e.content?.caption||'메모')}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </Card>

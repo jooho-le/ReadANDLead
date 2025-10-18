@@ -41,7 +41,8 @@ async def perform(
 ):
     service_key = os.getenv("KOPIS_API_KEY")
     if not service_key:
-        return {"error": "KOPIS_API_KEY not set"}
+        # 프론트 파서가 기대하는 구조로 빈 값 반환
+        return {"dbs": {"db": []}}
 
     if not from_:
         from_ = _today()
@@ -61,12 +62,14 @@ async def perform(
         params["signgucodesub"] = gugun_code
 
     url = "http://www.kopis.or.kr/openApi/restful/pblprfr"
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        r = await client.get(url, params=params)
-        r.raise_for_status()
-        txt = r.text
-        try:
-            return xmltodict.parse(txt)
-        except Exception:
-            return {"raw": txt}
-
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.get(url, params=params)
+            r.raise_for_status()
+            txt = r.text
+            try:
+                return xmltodict.parse(txt)
+            except Exception:
+                return {"dbs": {"db": []}}
+    except Exception:
+        return {"dbs": {"db": []}}

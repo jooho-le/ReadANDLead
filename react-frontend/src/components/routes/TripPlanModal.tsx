@@ -39,7 +39,7 @@ function uuid(): string { return (crypto?.randomUUID?.() || (Date.now().toString
 const TripPlanModal: React.FC<Props> = ({ isOpen, onClose, onSaved }) => {
   const [stops, setStops] = useState<DraftStop[]>([]);
   const [title, setTitle] = useState('나의 문학여행');
-  const [theme, setTheme] = useState('문학여행');
+  const [theme, setTheme] = useState('');
   const [days, setDays] = useState(1);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
@@ -94,7 +94,7 @@ const TripPlanModal: React.FC<Props> = ({ isOpen, onClose, onSaved }) => {
           <Input placeholder="여행 제목" value={title} onChange={(e)=>setTitle(e.target.value)} />
         </Row>
         <Row>
-          <Input placeholder="테마(선택)" value={theme} onChange={(e)=>setTheme(e.target.value)} />
+          <Input placeholder="예) 역사 체험 / 문학 산책" value={theme} onChange={(e)=>setTheme(e.target.value)} />
           <Input style={{maxWidth:120}} type="number" min={1} value={days} onChange={(e)=>setDays(parseInt(e.target.value||'1',10)||1)} />
         </Row>
 
@@ -125,4 +125,3 @@ const TripPlanModal: React.FC<Props> = ({ isOpen, onClose, onSaved }) => {
 }
 
 export default TripPlanModal;
-

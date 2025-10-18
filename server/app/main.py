@@ -12,6 +12,7 @@ from .routers import culture as culture_router
 from .routers import kopis as kopis_router
 from .routers import uploads as uploads_router
 from .routers import agency_trips as agency_trips_router
+from .routers import places as places_router
 from fastapi.staticfiles import StaticFiles
 from .routers import trips as trips_router
 import os
@@ -28,11 +29,13 @@ allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "").strip()
 if allowed_origins_env:
     allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
 else:
-    # 기본값: 로컬 웹, Capacitor WebView(http://localhost)
+    # 기본값: 로컬 웹, 다양한 개발 포트(3000/5173 등)
     allowed_origins = [
         "http://localhost",
         "http://localhost:3000",
+        "http://localhost:5173",
         "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
     ]
 
 app.add_middleware(
@@ -74,6 +77,7 @@ def ping():
     return {"ok": True}
 
 app.include_router(trips_router.router, prefix="/api/trips", tags=["trips"])
+app.include_router(places_router.router, prefix="/api", tags=["places"])  # /api/places/upsert
 
 # Root 안내: 기본 URL 접속 시 간단 안내를 반환
 @app.get("/")
