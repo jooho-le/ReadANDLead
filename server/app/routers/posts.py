@@ -8,6 +8,9 @@ from sqlalchemy.orm import Session, joinedload, load_only
 from .. import models, schemas
 from ..database import get_db
 from ..deps import get_current_user_required
+from datetime import datetime, timezone, timedelta
+
+KST = timezone(timedelta(hours=9))
 
 from fastapi import Body
 
