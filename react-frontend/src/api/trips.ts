@@ -159,3 +159,8 @@ export async function fetchTripSummary(): Promise<Array<{trip_id:string; book_ti
 export async function deleteTrip(tripId: string){
   return apiFetch(`/api/trips/${encodeURIComponent(tripId)}`, { method: 'DELETE' });
 }
+
+// 획득 리워드(배지) 목록
+export async function fetchRewards(): Promise<Array<{trip_id:string; book_title:string; claimed_at:string}>>{
+  return apiFetch(`/api/trips/rewards`);
+}
