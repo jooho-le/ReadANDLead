@@ -78,7 +78,7 @@ function PlanForm({ tripId }: { tripId: string }) {
   const [bookTitle, setBookTitle] = useState(initialBook);
   const [travelers, setTravelers] = useState(2);
   const [days, setDays] = useState(2);
-  const [theme, setTheme] = useState("역사 체험");
+  const [theme, setTheme] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState<TravelPlan | null>(null);

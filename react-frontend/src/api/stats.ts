@@ -43,20 +43,24 @@ export async function fetchCultureNearbyCount(p: {
   if (p.from) qs.set("from", p.from);
   if (p.to) qs.set("to", p.to);
 
-  const res = await fetch(apiUrl(`${ENDPOINTS.cultureNearby}?${qs.toString()}`), {
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error("HTTP " + res.status);
-  const data = await res.json().catch(() => ({} as any));
+  try {
+    const res = await fetch(apiUrl(`${ENDPOINTS.cultureNearby}?${qs.toString()}`), {
+      credentials: "include",
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json().catch(() => ({} as any));
 
-  // 문화포털 응답 형태 보정
-  const items = (((data || {}).response || {}).body || {}).items || {};
-  const arr = Array.isArray((items as any).item)
-    ? (items as any).item
-    : (items as any).item
-    ? [(items as any).item]
-    : [];
-  return arr.length;
+    // 문화포털 응답 형태 보정
+    const items = (((data || {}).response || {}).body || {}).items || {};
+    const arr = Array.isArray((items as any).item)
+      ? (items as any).item
+      : (items as any).item
+      ? [(items as any).item]
+      : [];
+    return arr.length;
+  } catch {
+    return 0;
+  }
 }
 
 /** KOPIS(공연) 개수 — 백엔드 프록시를 통해 조회 */
@@ -72,14 +76,18 @@ export async function fetchKopisCount(p: {
   qs.set("to", p.to);
   if (typeof p.rows === "number") qs.set("rows", String(p.rows));
 
-  const res = await fetch(apiUrl(`${ENDPOINTS.kopisPerform}?${qs.toString()}`), {
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error("HTTP " + res.status);
-  const data = await res.json().catch(() => ({} as any));
+  try {
+    const res = await fetch(apiUrl(`${ENDPOINTS.kopisPerform}?${qs.toString()}`), {
+      credentials: "include",
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json().catch(() => ({} as any));
 
-  // KOPIS 응답(dbs->db) 보정
-  const list = (((data || {}).dbs || {}).db) || [];
-  const arr = Array.isArray(list) ? list : list ? [list] : [];
-  return arr.length;
+    // KOPIS 응답(dbs->db) 보정
+    const list = (((data || {}).dbs || {}).db) || [];
+    const arr = Array.isArray(list) ? list : list ? [list] : [];
+    return arr.length;
+  } catch {
+    return 0;
+  }
 }

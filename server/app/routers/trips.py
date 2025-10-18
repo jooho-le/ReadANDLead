@@ -944,6 +944,62 @@ def list_stops(trip_id: str):
     return out
 
 
+# ========================== Add single stop (manual/AI pick) ==========================
+class AddStopIn(BaseModel):
+    placeId: str
+    date: Optional[str] = None
+    startTime: Optional[str] = None
+    notes: Optional[str] = None
+
+@router.post("/{trip_id}/stops")
+def add_stop(trip_id: str, payload: AddStopIn):
+    user_id = _get_user_id_from_header()
+    conn = _conn()
+    # Try reading place info from places table (created via /api/places/upsert)
+    try:
+        prow = conn.execute(
+            "SELECT id, name, address, lat, lng FROM places WHERE id=?",
+            (int(payload.placeId),)
+        ).fetchone()
+    except Exception:
+        prow = None
+
+    name = (prow["name"] if prow else "장소")
+    place = name
+    lat = (float(prow["lat"]) if (prow and prow["lat"] is not None) else None)
+    lng = (float(prow["lng"]) if (prow and prow["lng"] is not None) else None)
+    now = _utcnow()
+
+    # Append with next idx
+    cur = conn.execute(
+        "SELECT COALESCE(MAX(idx), -1) AS mi FROM trip_stops WHERE user_id=? AND trip_id=?",
+        (user_id, trip_id)
+    ).fetchone()
+    next_idx = int(cur["mi"] or -1) + 1
+
+    conn.execute(
+        """
+        INSERT INTO trip_stops(user_id, trip_id, day, idx, title, mission, place, lat, lng, status, created_at)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?)
+        """,
+        (user_id, trip_id, None, next_idx, name, payload.notes or None, place, lat, lng, "pending", now)
+    )
+    rid = conn.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
+    conn.commit(); conn.close()
+    return {
+        "id": str(rid),
+        "tripId": trip_id,
+        "placeId": str(payload.placeId),
+        "placeName": place,
+        "lat": lat,
+        "lng": lng,
+        "address": None,
+        "date": payload.date or None,
+        "startTime": payload.startTime or None,
+        "notes": payload.notes or None,
+    }
+
+
 # ========================== Diary (minimal) ==========================
 def _ensure_diary(conn: sqlite3.Connection):
     conn.execute(
