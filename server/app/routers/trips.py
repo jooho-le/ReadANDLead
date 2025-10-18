@@ -603,7 +603,7 @@ def _fallback_plan(inp: PlanInput) -> TravelPlan:
             ]
         ))
     return TravelPlan(
-        summary=f"'{inp.bookTitle}' 기반 {inp.days}일 {inp.theme} 여행(실제 장소는 Kakao Places로 확정).",
+        summary=f"'{inp.bookTitle}' 기반 {inp.days}일 {inp.theme} 여행",
         days=days
     )
 

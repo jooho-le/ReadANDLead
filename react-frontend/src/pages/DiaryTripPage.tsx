@@ -270,14 +270,6 @@ export function PlanPanel() {
     <div style={{ display: 'grid', gap: 12 }}>
       {/* ✅ GPT 여행 계획 폼 */}
       <PlanForm tripId={id!} />
-
-      {/* 기존 수동 일정 관리 UI */}
-      <LavenderSection>
-        <Card>
-          <StopPlanner tripId={id!} onAdded={() => { /* 필요시 토스트 */ }} />
-        </Card>
-      </LavenderSection>
-
     </div>
   );
 }
