@@ -17,7 +17,7 @@ const CRA_API: string | undefined = process.env.REACT_APP_API_URL as any;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const CRA_API_BASE: string | undefined = process.env.REACT_APP_API_BASE_URL as any;
 
-// Build-time prod detection
+// Build-time prod detection (kept for potential callers)
 // - CRA/Webpack: process.env.NODE_ENV === 'production' (literal replaced at build time)
 // - Vite: import.meta.env.PROD
 const IS_PROD: boolean =
@@ -25,26 +25,15 @@ const IS_PROD: boolean =
   process.env.NODE_ENV === "production";
 
 function resolveBase(): string {
-  // Hosted domain → Render API (only in production). Local dev keeps local API.
-  let hostHint = "";
-  try {
-    const h = typeof window !== "undefined" ? window.location.hostname : "";
-    if (IS_PROD && h && !/^localhost$|^127\.0\.0\.1$/.test(h)) {
-      hostHint = "https://readandlead-api.onrender.com";
-    }
-  } catch {}
-
+  // 우선순위: 런타임(window.__API_BASE__) > 빌드환경(VITE/CRA)
+  // 기본값은 same-origin 사용을 위해 빈 문자열(상대경로)로 둡니다.
   const runtimeBase = (typeof window !== "undefined" && window.__API_BASE__) || "";
-  const envUrl = runtimeBase || hostHint || VITE_API || CRA_API || CRA_API_BASE || "";
-
-  // 기본값: 개발은 로컬, 프로덕션은 Render 공개 URL
-  let base = envUrl || (IS_PROD ? "https://readandlead-api.onrender.com" : "http://127.0.0.1:8000");
+  let base = runtimeBase || VITE_API || CRA_API || CRA_API_BASE || "";
 
   // Emulator helper: if base points to localhost and platform is android, rewrite to 10.0.2.2
   try {
     const platform = Capacitor?.getPlatform?.();
-    const isNative = Capacitor?.isNativePlatform?.();
-    if (platform === "android") {
+    if (platform === "android" && base) {
       if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(base)) {
         base = base.replace(/^(https?:\/\/)(localhost|127\.0\.0\.1)/i, "$1" + "10.0.2.2");
       }
