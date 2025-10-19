@@ -25,12 +25,11 @@ const IS_PROD: boolean =
   process.env.NODE_ENV === "production";
 
 function resolveBase(): string {
-  // If running on vercel.app (production/preview), force the Render API unless an env overrides it
+  // Hosted domain → Render API (only in production). Local dev keeps local API.
   let hostHint = "";
   try {
     const h = typeof window !== "undefined" ? window.location.hostname : "";
-    if (h && !/^localhost$|^127\.0\.0\.1$/.test(h)) {
-      // any hosted domain (vercel.app or custom) should hit the cloud API
+    if (IS_PROD && h && !/^localhost$|^127\.0\.0\.1$/.test(h)) {
       hostHint = "https://readandlead-api.onrender.com";
     }
   } catch {}

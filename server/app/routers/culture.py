@@ -26,7 +26,8 @@ async def culture_nearby(
 ):
     service_key = os.getenv("CULTURE_API_KEY")
     if not service_key:
-        return {"error": "CULTURE_API_KEY not set"}
+        # 프론트 파서가 기대하는 구조로 빈 값 반환
+        return {"response": {"body": {"items": {"item": []}}}}
 
     if not from_:
         from_ = _today()
@@ -50,12 +51,15 @@ async def culture_nearby(
     }
 
     url = "http://www.culture.go.kr/openapi/rest/publicperformancedisplays/period"
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        r = await client.get(url, params=params)
-        r.raise_for_status()
-        # culture API는 JSON/XML 둘 다 가능 — 기본 JSON
-        ct = r.headers.get("content-type", "")
-        if "application/json" in ct:
-            return r.json()
-        return r.text
-
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.get(url, params=params)
+            r.raise_for_status()
+            # culture API는 JSON/XML 둘 다 가능 — 기본 JSON
+            ct = r.headers.get("content-type", "")
+            if "application/json" in ct:
+                return r.json()
+            return r.text
+    except Exception:
+        # 네트워크 오류 시에도 실패 대신 빈 결과 반환
+        return {"response": {"body": {"items": {"item": []}}}}
