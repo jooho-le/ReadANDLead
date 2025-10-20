@@ -25,3 +25,15 @@ class NeighborPost(Base):
 
 # helpful index for ordering by recency
 Index('ix_neighbor_posts_created_at', NeighborPost.created_at)
+
+
+class NeighborComment(Base):
+    __tablename__ = "neighbor_comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    post_id = Column(Integer, ForeignKey("neighbor_posts.id", ondelete="CASCADE"), index=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    author = relationship("User")
