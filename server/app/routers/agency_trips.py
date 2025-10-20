@@ -1,10 +1,16 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Response, Request
 
 router = APIRouter()
 
 
 @router.get("/list")
-def list_agency_trips():
+def list_agency_trips(request: Request, response: Response):
+    # static content: allow caching for 10 minutes
+    etag = 'W/"agency-list-1"'
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304)
+    response.headers["ETag"] = etag
+    response.headers["Cache-Control"] = "public, max-age=600"
     return [
         {
             "id": "hana-han-kang",
@@ -41,4 +47,3 @@ def list_agency_trips():
             ],
         },
     ]
-

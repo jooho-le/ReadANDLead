@@ -1,5 +1,5 @@
 // src/api/kopis.ts
-import { apiUrl, ENDPOINTS } from "./config";
+import { apiUrl, ENDPOINTS, apiFetchPublic } from "./config";
 
 /** KOPIS 공연 조회 쿼리 */
 export type Query = {
@@ -29,8 +29,12 @@ export async function fetchKopisPerformances(q: Query): Promise<KopisRaw> {
   qs.set("to", q.to);
   if (typeof q.rows === "number") qs.set("rows", String(q.rows));
 
-  const url = apiUrl(`${ENDPOINTS.kopisPerform}?${qs.toString()}`);
-  const res = await fetch(url, { credentials: "include" });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  const ctrl = new AbortController();
+  const to = setTimeout(() => ctrl.abort(), 7000);
+  try {
+    const url = apiUrl(`${ENDPOINTS.kopisPerform}?${qs.toString()}`);
+    return await apiFetchPublic(url, { signal: ctrl.signal });
+  } finally {
+    clearTimeout(to);
+  }
 }

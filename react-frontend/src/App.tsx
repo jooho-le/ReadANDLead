@@ -1,5 +1,5 @@
 // src/App.tsx
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Capacitor } from '@capacitor/core';
@@ -18,6 +18,9 @@ import NeighborPostPage from './pages/NeighborPost';
 import NeighborCompose from './pages/NeighborCompose';
 import PlaceToBook from './pages/PlaceToBook';
 import DiaryTripLayout, { PlanPanel, ItineraryPanel } from "./pages/DiaryTripPage";
+import { apiFetch } from './api/config';
+import { listNeighborSummaries } from './api/neighbor';
+import { listAgencyTrips } from './api/agency';
 
 const Main = styled.main<{ $native?: boolean }>`
   min-height: 100vh;
@@ -47,6 +50,29 @@ export default function App() {
       return false;
     }
   })();
+  // Prewarm API (non-blocking) to avoid cold-start hit on first interactive fetch
+  useEffect(() => {
+    let aborted = false;
+    const ctrl = new AbortController();
+    (async () => {
+      try { await apiFetch('/api/ping', { signal: ctrl.signal }); } catch {}
+      if (aborted) return;
+    })();
+    return () => { aborted = true; ctrl.abort(); };
+  }, []);
+
+  // Idle prefetch: warm client caches for public lists
+  useEffect(() => {
+    const ric = (window as any).requestIdleCallback || ((cb: any) => setTimeout(cb, 300));
+    const cancel = (window as any).cancelIdleCallback || clearTimeout;
+    const handle = ric(async () => {
+      try { await Promise.allSettled([
+        listNeighborSummaries(30),
+        listAgencyTrips(),
+      ]); } catch {}
+    });
+    return () => { cancel(handle); };
+  }, []);
   return (
     <BrowserRouter>
       <Header />

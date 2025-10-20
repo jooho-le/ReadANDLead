@@ -177,8 +177,12 @@ export default function Home() {
 
   useEffect(() => {
     let cancelled = false;
+    const schedule = (cb: () => void) =>
+      (typeof (window as any).requestIdleCallback === 'function')
+        ? (window as any).requestIdleCallback(cb, { timeout: 1000 })
+        : setTimeout(cb, 0);
 
-    (async () => {
+    const handle = schedule(async () => {
       const center = await getCurrentPosition();
 
       const placePromise = countNearbyAttractions(center)
@@ -194,9 +198,15 @@ export default function Home() {
         .catch(() => {});
 
       await Promise.allSettled([placePromise, eventPromise, userPromise]);
-    })();
+    });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      if (typeof handle === 'number') clearTimeout(handle as any);
+      else if (handle && typeof (window as any).cancelIdleCallback === 'function') {
+        (window as any).cancelIdleCallback(handle);
+      }
+    };
   }, []);
 
   return (

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Index
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .database import Base
@@ -22,3 +22,6 @@ class NeighborPost(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     author = relationship("User", back_populates="posts")
+
+# helpful index for ordering by recency
+Index('ix_neighbor_posts_created_at', NeighborPost.created_at)
