@@ -23,28 +23,32 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Read&Lead API")
 
-# CORS: 배포/앱 환경에 맞게 환경변수로 제어
-# ALLOWED_ORIGINS=콤마로_구분된_오리진들 (예: "https://web.example.com,http://localhost")
+# CORS 구성: 환경변수만으로 제어 (하드코딩 기본값 제거)
+# - ALLOWED_ORIGINS: 콤마로 구분된 오리진 목록 (예: "https://web.example.com,http://localhost:3000")
+# - ALLOWED_ORIGIN_REGEX: 정규식(선택) — 특정 패턴 도메인 허용 시 사용
+# - ALLOW_ALL_ORIGINS: "1"/"true"/"yes" → 모든 오리진 허용(자격증명 비허용)
 allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "").strip()
-if allowed_origins_env:
-    allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
-else:
-    # 기본값: 로컬 웹, 다양한 개발 포트(3000/5173 등)
-    allowed_origins = [
-        "http://localhost",
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5173",
-    ]
+allowed_origin_regex = os.getenv("ALLOWED_ORIGIN_REGEX", "").strip()
+allow_all = os.getenv("ALLOW_ALL_ORIGINS", "").strip().lower() in {"1", "true", "yes", "on"}
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allowed_origins,
+allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()] if allowed_origins_env else []
+
+cors_kwargs = dict(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+if allow_all:
+    # 와일드카드 사용 시 브라우저 정책상 credentials 를 허용할 수 없음
+    cors_kwargs.update(allow_origins=["*"], allow_credentials=False)
+elif allowed_origin_regex:
+    cors_kwargs.update(allow_origin_regex=allowed_origin_regex, allow_origins=[])
+else:
+    # 명시된 오리진만 허용. 미설정 시 교차 출처는 모두 차단(동일 출처는 CORS 비대상)
+    cors_kwargs.update(allow_origins=allowed_origins)
+
+app.add_middleware(CORSMiddleware, **cors_kwargs)
 
 # Simple request logger to diagnose method/path issues during auth
 @app.middleware("http")

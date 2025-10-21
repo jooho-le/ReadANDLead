@@ -348,7 +348,8 @@ export default function Header() {
     () =>
       (import.meta as any)?.env?.VITE_API_URL ||
       (process.env as any)?.REACT_APP_API_URL ||
-      'http://127.0.0.1:8000',
+      (typeof window !== 'undefined' ? (window as any).__API_BASE__ : '') ||
+      '',
     []
   );
 
