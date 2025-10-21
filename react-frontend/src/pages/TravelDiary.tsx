@@ -181,6 +181,9 @@ export default function TravelDiary() {
                     </BadgeCard>
                   ))}
                 </Badges>
+                <p style={{ marginTop: '12px', color: '#6b7280', fontSize: '13px' }}>
+                    ※ 위 배지는 예시이며, 실제 AI 여행 미션을 모두 인증한 후 본인만의 배지가 발급됩니다.
+                </p>
               </Card>
             )}
           </Content>
