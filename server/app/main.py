@@ -16,6 +16,25 @@ from fastapi.staticfiles import StaticFiles
 from .routers import trips as trips_router
 import os
 
+import time, platform
+from datetime import datetime, timezone, timedelta
+
+# 공통 타임존 설정
+os.environ['TZ'] = 'Asia/Seoul'
+
+# tzset은 Linux/macOS에서만 실행
+if hasattr(time, 'tzset'):
+    time.tzset()
+
+KST = timezone(timedelta(hours=9))
+
+# 테스트용 출력
+print(f"현재 OS: {platform.system()}")
+print("현재 타임존:", time.tzname)
+print("datetime.now():", datetime.now())
+print("datetime.now(KST):", datetime.now(KST))
+
+
 # Ensure tables exist (idempotent). For prod consider migrations, but this
 # keeps new envs from booting without tables.
 Base.metadata.create_all(bind=engine)
