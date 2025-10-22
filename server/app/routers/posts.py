@@ -9,6 +9,11 @@ from .. import models, schemas
 from ..database import get_db
 from ..deps import get_current_user_required
 
+from fastapi import Body
+
+from datetime import datetime, timezone, timedelta
+KST = timezone(timedelta(hours=9))
+
 router = APIRouter()
 
 # in-process cache for summaries (by limit)
@@ -122,6 +127,7 @@ def create_post(
         cover=payload.cover,
         content_html=payload.content_html,
         images=json.dumps(payload.images) if payload.images else None,
+        created_at=datetime.now(KST),   # 한국 시간으로 저장
     )
     db.add(post)
     db.commit()
@@ -169,5 +175,112 @@ def delete_post(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
     db.delete(post)
+    db.commit()
+    return
+
+@router.post("/{post_id}/claim", status_code=status.HTTP_204_NO_CONTENT)
+def claim_post(
+    post_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user_required),
+):
+    """
+    소유권 등록(Claim) 기능
+    - 레거시 글 등에서 작성자 정보가 없거나 다를 때, 현재 로그인 사용자가 소유권을 등록.
+    - 프론트에서는 삭제 시도 실패 시 자동으로 이 API를 호출함.
+    """
+    post = db.get(models.NeighborPost, post_id)
+    if not post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+
+    # 이미 본인 글이면 아무 작업 없이 성공 처리
+    if post.user_id == current_user.id:
+        return
+
+    # 작성자 이름이 같으면 소유권 이전 허용 (필요시 조건 수정 가능)
+    if post.author and post.author.display_name == current_user.display_name:
+        post.user_id = current_user.id
+        db.add(post)
+        db.commit()
+        return
+
+    # 조건이 맞지 않으면 권한 거부
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+
+
+@router.get("/{post_id}/comments", response_model=List[schemas.CommentOut])
+def list_comments(post_id: int, db: Session = Depends(get_db)):
+    """특정 게시글의 댓글 목록 조회"""
+    post = db.get(models.NeighborPost, post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    comments = (
+        db.query(models.NeighborComment)
+        .filter(models.NeighborComment.post_id == post_id)
+        .order_by(models.NeighborComment.created_at.asc())
+        .all()
+    )
+    return [
+        schemas.CommentOut(
+            id=c.id,
+            post_id=c.post_id,
+            author=c.author.display_name if c.author else "익명",
+            content=c.content,
+            date=c.created_at,
+        )
+        for c in comments
+    ]
+
+@router.post("/{post_id}/comments", response_model=schemas.CommentOut)
+def create_comment(
+    post_id: int,
+    payload: dict = Body(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user_required),
+):
+    """댓글 작성"""
+    post = db.get(models.NeighborPost, post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    content = payload.get("content")
+    if not content:
+        raise HTTPException(status_code=400, detail="Content required")
+
+    comment = models.NeighborComment(
+        post_id=post_id,
+        user_id=current_user.id,
+        content=content,
+        created_at=datetime.now(KST),
+    )
+    db.add(comment)
+    db.commit()
+    db.refresh(comment)
+
+    return schemas.CommentOut(
+        id=comment.id,
+        post_id=comment.post_id,
+        author=current_user.display_name,
+        content=comment.content,
+        date=comment.created_at,
+    )
+
+
+@router.delete("/{post_id}/comments/{comment_id}", status_code=204)
+def delete_comment(
+    post_id: int,
+    comment_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user_required),
+):
+    """댓글 삭제"""
+    comment = db.get(models.NeighborComment, comment_id)
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    if comment.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    db.delete(comment)
     db.commit()
     return

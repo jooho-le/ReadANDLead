@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { Link, useNavigate } from 'react-router-dom';
 import { listNeighborSummaries, type NeighborPostSummary } from '../api/neighbor';
+import { me as fetchMe } from '../api/auth'; // ✅ 추가
 
 const Wrap = styled.div`
   max-width: 1040px;
@@ -77,15 +78,29 @@ export default function Neighbors() {
   const [posts, setPosts] = useState<NeighborPostSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [myName, setMyName] = useState<string>(''); // ✅ 추가
   const nav = useNavigate();
 
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
+        // 1. 로그인 사용자 정보 먼저 가져오기
+        const profile = await fetchMe().catch(() => null);
+        if (!alive) return;
+
+        if (profile) setMyName(profile.display_name || profile.email || '');
+
+        // 2. 글 목록 불러오기
         const r = await listNeighborSummaries();
         if (!alive) return;
-        setPosts(Array.isArray(r) ? r : []);
+
+        // 3. 만약 마이페이지 "내가 쓴 글" 전용이라면 내 이름으로 필터링
+        const filtered = profile
+          ? r.filter((p) => p.author === (profile.display_name || profile.email))
+          : r;
+
+        setPosts(Array.isArray(filtered) ? filtered : []);
         setError('');
       } catch (err) {
         if (!alive) return;
@@ -102,7 +117,6 @@ export default function Neighbors() {
     <Wrap>
       <Head>
         <H1>이웃의 책여행 따라가기</H1>
-        {/* ✅ 글쓰기: 항상 SPA 경로로 이동 */}
         <WriteBtn onClick={() => nav('/neighbors/new')}>글 쓰기</WriteBtn>
       </Head>
 
