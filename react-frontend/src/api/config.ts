@@ -54,6 +54,28 @@ export function apiUrl(path: string): string {
   return `${base}${p}`;
 }
 
+// 공개 GET 전용 가벼운 fetch: Authorization/credentials 미포함 → 브라우저 캐시 효과↑, CORS preflight↓
+export async function apiFetchPublic<T = any>(
+  path: string,
+  init: RequestInit = {}
+): Promise<T> {
+  const url = apiUrl(path);
+  const headers = new Headers(init.headers || {});
+  // JSON 응답 가정은 하지 않음. 필요 시 사용처에서 파싱
+  const res = await fetch(url, {
+    ...init,
+    headers,
+    credentials: "omit",
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text || `HTTP ${res.status}`);
+  }
+  const ct = res.headers.get("content-type") || "";
+  if (ct.includes("application/json")) return (await res.json()) as T;
+  return (await res.text()) as unknown as T;
+}
+
 // 공용 엔드포인트(타입오류 방지용으로 다 넣어둠)
 export const ENDPOINTS = {
   // 이웃 글

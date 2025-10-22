@@ -130,7 +130,7 @@ export default function Neighbors() {
         <Grid>
           {posts.map((p) => (
             <Card key={p.id} to={`/neighbors/${p.id}`}>
-              {p.cover && <Thumb src={p.cover} alt={p.title} />}
+              {p.cover && <Thumb src={p.cover} alt={p.title} loading="lazy" decoding="async" />}
               <Body>
                 <CardTitle>{p.title}</CardTitle>
                 <CardMeta>

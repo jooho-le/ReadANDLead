@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Index
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone, timedelta
 from .database import Base
@@ -25,13 +25,15 @@ class NeighborPost(Base):
     updated_at = Column(DateTime, default=lambda: datetime.now(KST), onupdate=lambda: datetime.now(KST), nullable=False)
     author = relationship("User", back_populates="posts")
 
+# helpful index for ordering by recency
+Index('ix_neighbor_posts_created_at', NeighborPost.created_at)
 class NeighborComment(Base):
     __tablename__ = "neighbor_comments"
 
     id = Column(Integer, primary_key=True, index=True)
-    post_id = Column(Integer, ForeignKey("neighbor_posts.id", ondelete="CASCADE"))
-    user_id = Column(Integer, ForeignKey("users.id"))
+    post_id = Column(Integer, ForeignKey("neighbor_posts.id", ondelete="CASCADE"), index=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
     content = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(KST), nullable=False)
 
     author = relationship("User")

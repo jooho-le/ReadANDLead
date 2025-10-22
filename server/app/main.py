@@ -14,14 +14,19 @@ from .routers import uploads as uploads_router
 from .routers import agency_trips as agency_trips_router
 from .routers import places as places_router
 from fastapi.staticfiles import StaticFiles
+from fastapi import Response
 from .routers import trips as trips_router
 import os
+from fastapi.middleware.gzip import GZipMiddleware
 
 # Ensure tables exist (idempotent). For prod consider migrations, but this
 # keeps new envs from booting without tables.
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Read&Lead API")
+
+# Compress sizable JSON/text payloads
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 # CORS 구성: 환경변수만으로 제어 (하드코딩 기본값 제거)
 # - ALLOWED_ORIGINS: 콤마로 구분된 오리진 목록 (예: "https://web.example.com,http://localhost:3000")
@@ -49,6 +54,51 @@ else:
     cors_kwargs.update(allow_origins=allowed_origins)
 
 app.add_middleware(CORSMiddleware, **cors_kwargs)
+
+# Optional: background prewarm of lightweight endpoints to mitigate cold starts
+@app.on_event("startup")
+async def _prewarm_lightweight():
+    """Fill small in-process caches on startup to reduce first-hit latency."""
+    try:
+        import time
+        from sqlalchemy.orm import joinedload, load_only
+        from .database import SessionLocal
+        from . import models as _models
+        from .routers import stats as _stats
+        from .routers import posts as _posts
+
+        now = time.time()
+        db = SessionLocal()
+        try:
+            # Users count cache
+            total = db.query(_models.User).count()
+            _stats._users_count_cache["v"] = int(total)  # type: ignore[attr-defined]
+            _stats._users_count_ts = now                  # type: ignore[attr-defined]
+
+            # Neighbor summaries cache (limit=30)
+            posts = (
+                db.query(_models.NeighborPost)
+                .options(
+                    load_only(
+                        _models.NeighborPost.id,
+                        _models.NeighborPost.title,
+                        _models.NeighborPost.cover,
+                        _models.NeighborPost.created_at,
+                    ),
+                    joinedload(_models.NeighborPost.author).load_only(_models.User.display_name),
+                )
+                .order_by(_models.NeighborPost.created_at.desc())
+                .limit(30)
+                .all()
+            )
+            rows = [_posts._post_to_summary(p) for p in posts]
+            _posts._summary_cache[30] = rows               # type: ignore[attr-defined]
+            _posts._summary_ts[30] = now                   # type: ignore[attr-defined]
+        finally:
+            db.close()
+    except Exception:
+        # Best-effort only
+        pass
 
 # Simple request logger to diagnose method/path issues during auth
 @app.middleware("http")

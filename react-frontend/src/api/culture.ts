@@ -1,5 +1,5 @@
 // src/api/culture.ts
-import { ENDPOINTS, apiUrl } from './config';
+import { ENDPOINTS, apiUrl, apiFetchPublic } from './config';
 
 export type NearbyParams = {
   lat: number;
@@ -21,10 +21,13 @@ export async function fetchCultureNearby(p: NearbyParams): Promise<any> {
   if (p.to) qs.set('to', p.to);
   if (typeof p.rows === 'number') qs.set('rows', String(p.rows));
 
-  const url = `${apiUrl(ENDPOINTS.cultureNearby)}?${qs.toString()}`;
-  const res = await fetch(url, { credentials: 'include' });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-  // 백엔드가 그대로 문화포털 JSON을 리턴한다고 가정
-  return res.json().catch(() => ({}));
+  const ctrl = new AbortController();
+  const to = setTimeout(() => ctrl.abort(), 7000);
+  try {
+    const url = `${apiUrl(ENDPOINTS.cultureNearby)}?${qs.toString()}`;
+    const data = await apiFetchPublic(url, { signal: ctrl.signal }).catch(() => ({}));
+    return data;
+  } finally {
+    clearTimeout(to);
+  }
 }
