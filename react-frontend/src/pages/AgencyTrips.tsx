@@ -156,7 +156,7 @@ export default function AgencyTrips() {
           {items.map((s) => (
             <Card key={s.id} to={`/agency-trips/${encodeURIComponent(s.id)}`}>
               {s.cover && (
-                <Thumb src={s.cover} alt={s.title} />
+                <Thumb src={s.cover} alt={s.title} loading="lazy" decoding="async" />
               )}
               <Body>
                 <Title>{s.title}</Title>

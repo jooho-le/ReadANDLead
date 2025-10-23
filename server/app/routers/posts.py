@@ -2,7 +2,7 @@
 import json
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from sqlalchemy.orm import Session, joinedload, load_only
 
 from .. import models, schemas
@@ -18,6 +18,11 @@ from datetime import datetime, timezone, timedelta
 KST = timezone(timedelta(hours=9))
 
 router = APIRouter()
+
+# in-process cache for summaries (by limit)
+_summary_cache: dict[int, list[schemas.PostSummary]] = {}
+_summary_ts: dict[int, float] = {}
+_SUMMARY_TTL = 30.0  # seconds
 
 
 def _serialize_images(value: str | None) -> List[str] | None:
@@ -65,8 +70,21 @@ def list_posts(db: Session = Depends(get_db)):
 
 
 @router.get("/summary", response_model=List[schemas.PostSummary])
-def list_posts_summary(limit: int = 30, db: Session = Depends(get_db)):
+def list_posts_summary(limit: int = 30, request: Request = None, response: Response = None, db: Session = Depends(get_db)):
     safe_limit = max(1, min(limit, 100))
+    import time
+    now = time.time()
+    ts = _summary_ts.get(safe_limit)
+    if ts and (now - ts) < _SUMMARY_TTL:
+        rows = _summary_cache.get(safe_limit, [])
+        # ETag composed from limit + ts + rows length
+        etag = f'W/"sum-{safe_limit}-{int(ts)}-{len(rows)}"'
+        if request is not None and request.headers.get("if-none-match") == etag:
+            return Response(status_code=304)
+        if response is not None:
+            response.headers["ETag"] = etag
+            response.headers["Cache-Control"] = f"public, max-age={int(_SUMMARY_TTL)}"
+        return rows
     posts = (
         db.query(models.NeighborPost)
         .options(
@@ -82,7 +100,14 @@ def list_posts_summary(limit: int = 30, db: Session = Depends(get_db)):
         .limit(safe_limit)
         .all()
     )
-    return [_post_to_summary(post) for post in posts]
+    rows = [_post_to_summary(post) for post in posts]
+    _summary_cache[safe_limit] = rows
+    _summary_ts[safe_limit] = now
+    if response is not None:
+        etag = f'W/"sum-{safe_limit}-{int(now)}-{len(rows)}"'
+        response.headers["ETag"] = etag
+        response.headers["Cache-Control"] = f"public, max-age={int(_SUMMARY_TTL)}"
+    return rows
 
 
 @router.get("/{post_id}", response_model=schemas.PostOut)

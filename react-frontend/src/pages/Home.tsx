@@ -177,26 +177,29 @@ export default function Home() {
 
   useEffect(() => {
     let cancelled = false;
-
-    (async () => {
+    const section = document.getElementById('stats-section');
+    const fire = async () => {
       const center = await getCurrentPosition();
-
-      const placePromise = countNearbyAttractions(center)
-        .then((cnt) => { if (!cancelled) setNearPlaces(cnt); })
-        .catch(() => {});
-
-      const eventPromise = computeNearbyEvents(center)
-        .then((total) => { if (!cancelled) setNearEvents(total); })
-        .catch(() => {});
-
-      const userPromise = fetchUsersCount()
-        .then((count) => { if (!cancelled) setUsers(count); })
-        .catch(() => {});
-
-      await Promise.allSettled([placePromise, eventPromise, userPromise]);
-    })();
-
-    return () => { cancelled = true; };
+      const p1 = countNearbyAttractions(center).then((v)=>{ if(!cancelled) setNearPlaces(v); }).catch(()=>{});
+      const p2 = computeNearbyEvents(center).then((v)=>{ if(!cancelled) setNearEvents(v); }).catch(()=>{});
+      const p3 = fetchUsersCount().then((v)=>{ if(!cancelled) setUsers(v); }).catch(()=>{});
+      await Promise.allSettled([p1,p2,p3]);
+    };
+    if (!('IntersectionObserver' in window) || !section) {
+      fire();
+      return () => { cancelled = true; };
+    }
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          fire();
+          io.disconnect();
+          break;
+        }
+      }
+    }, { rootMargin: '0px 0px -20% 0px' });
+    io.observe(section);
+    return () => { cancelled = true; io.disconnect(); };
   }, []);
 
   return (
@@ -226,7 +229,7 @@ export default function Home() {
         </Container>
       </FeaturesSection>
 
-      <StatsSection>
+      <StatsSection id="stats-section">
         <Container>
           <SectionTitle style={{marginBottom: '40px', background: 'none', WebkitTextFillColor: '#f1f3f5' }}>서비스 현황</SectionTitle>
           <StatsGrid>
@@ -269,12 +272,23 @@ function getCurrentPosition(): Promise<LatLng> {
 }
 
 async function countNearbyAttractions(center: LatLng): Promise<number> {
-  await loadKakaoSdk();
-  const radius = 20000;
-  const codes = ['AT4', 'CE7', 'CT1'];
+  // 세션 캐시(10분)로 재방문/스크롤 재진입 비용 절감
+  try {
+    const key = `home:nearPlaces:${center.lat.toFixed(2)}:${center.lng.toFixed(2)}`;
+    const raw = sessionStorage.getItem(key);
+    if (raw) {
+      const { t, v } = JSON.parse(raw);
+      if (Date.now() - t < 10 * 60 * 1000 && typeof v === 'number') return v;
+    }
+  } catch {}
 
-  const dirs = [0, 45, 90, 135, 180, 225, 270, 315];
-  const distKm = 20;
+  await loadKakaoSdk();
+  // 강도 완화: 반경/표본/페이지 축소
+  const radius = 12000;                // 12km (기존 20km)
+  const codes = ['AT4', 'CT1'];       // 카테고리 축소 (카페 CE7 제외)
+
+  const dirs = [0, 90, 180, 270];     // 표본 지점 4방위 (기존 8방위)
+  const distKm = 12;                  // 표본 거리 12km (기존 20km)
   const toDeg = Math.PI / 180;
   const dLat = (km: number) => km / 111.0;
   const dLng = (km: number, lat: number) => km / (111.0 * Math.max(Math.cos(lat * toDeg), 1e-6));
@@ -286,12 +300,12 @@ async function countNearbyAttractions(center: LatLng): Promise<number> {
 
   const seen = new Set<string>();
 
-  const chunkSize = 3; // amount of geo samples to process concurrently
+  const chunkSize = 2; // 동시 처리 축소로 외부 API 부하 완화
   for (let i = 0; i < centers.length; i += chunkSize) {
     const chunk = centers.slice(i, i + chunkSize);
     await Promise.all(chunk.map(async (c) => {
       await Promise.all(codes.map(async (code) => {
-        for (let page = 1; page <= 2; page++) {
+        for (let page = 1; page <= 1; page++) { // 페이지 1장만 요청
           let list: any[] = [];
           try {
             list = await categorySearch({ code, x: c.lng, y: c.lat, radius, page });
@@ -305,13 +319,18 @@ async function countNearbyAttractions(center: LatLng): Promise<number> {
               seen.add(id);
             }
           }
-          if (list.length < 15) break; // Kakao API page size; stop if we got the final page
+          // 페이지를 1장으로 제한했으므로 추가 요청 없음
         }
       }));
     }));
   }
 
-  return seen.size;
+  const total = seen.size;
+  try {
+    const key = `home:nearPlaces:${center.lat.toFixed(2)}:${center.lng.toFixed(2)}`;
+    sessionStorage.setItem(key, JSON.stringify({ t: Date.now(), v: total }));
+  } catch {}
+  return total;
 }
 
 async function computeNearbyEvents(center: LatLng): Promise<number> {

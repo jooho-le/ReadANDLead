@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request, Response
 from typing import Optional
 from datetime import datetime, timedelta
 import os
@@ -6,6 +6,11 @@ import httpx
 import xmltodict
 
 router = APIRouter()
+
+# simple in-memory cache
+_cache: dict[str, dict] = {}
+_ts: dict[str, float] = {}
+_TTL = 300.0
 
 SIDO_CODE = {
     "서울특별시": "11",
@@ -32,6 +37,8 @@ def _today() -> str:
 
 @router.get("/perform")
 async def perform(
+    request: Request,
+    response: Response,
     city: str = Query("", description="예: 광주광역시 / 서울특별시"),
     from_: Optional[str] = Query(None, alias="from", description="YYYYMMDD"),
     to: Optional[str] = Query(None, description="YYYYMMDD"),
@@ -61,6 +68,18 @@ async def perform(
     if gugun_code:
         params["signgucodesub"] = gugun_code
 
+    key = f"{city}:{from_}:{to}:{rows}:{page}:{gugun_code}"
+    import time
+    now = time.time()
+    ts = _ts.get(key)
+    if ts and (now - ts) < _TTL:
+        etag = f'W/"kop-{int(ts)}"'
+        if request.headers.get("if-none-match") == etag:
+            return Response(status_code=304)
+        response.headers["ETag"] = etag
+        response.headers["Cache-Control"] = f"public, max-age={int(_TTL)}"
+        return _cache.get(key, {"dbs": {"db": []}})
+
     url = "http://www.kopis.or.kr/openApi/restful/pblprfr"
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
@@ -68,8 +87,13 @@ async def perform(
             r.raise_for_status()
             txt = r.text
             try:
-                return xmltodict.parse(txt)
+                data = xmltodict.parse(txt)
             except Exception:
-                return {"dbs": {"db": []}}
+                data = {"dbs": {"db": []}}
+            _cache[key] = data  # type: ignore[assignment]
+            _ts[key] = now
+            response.headers["ETag"] = f'W/"kop-{int(now)}"'
+            response.headers["Cache-Control"] = f"public, max-age={int(_TTL)}"
+            return data
     except Exception:
         return {"dbs": {"db": []}}

@@ -1,5 +1,5 @@
 // src/api/neighbor.ts
-import { apiFetch, apiUrl } from './config';
+import { apiFetch, apiUrl, apiFetchPublic } from './config';
 
 export type NeighborPost = {
   id: number | string;
@@ -67,7 +67,28 @@ export function listNeighborSummaries(limit?: number) {
   const qs = new URLSearchParams();
   if (typeof limit === 'number') qs.set('limit', String(limit));
   const path = qs.size > 0 ? `${EP.neighborPosts}/summary?${qs.toString()}` : `${EP.neighborPosts}/summary`;
-  return apiFetch<NeighborPostSummary[]>(path).then((posts) => posts.map(resolveSummaryMedia));
+
+  const key = `neighbors:summary:${qs.get('limit') || 'default'}`;
+  const ttlMs = 60 * 1000; // 60초 캐시 (짧게)
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (raw) {
+      const { t, v } = JSON.parse(raw);
+      if (Date.now() - t < ttlMs && Array.isArray(v)) {
+        return Promise.resolve(v as NeighborPostSummary[]);
+      }
+    }
+  } catch {}
+
+  const ctrl = new AbortController();
+  const to = setTimeout(() => ctrl.abort(), 5000);
+  return apiFetchPublic<NeighborPostSummary[]>(path, { signal: ctrl.signal })
+    .then((posts) => posts.map(resolveSummaryMedia))
+    .then((rows) => {
+      try { sessionStorage.setItem(key, JSON.stringify({ t: Date.now(), v: rows })); } catch {}
+      return rows;
+    })
+    .finally(() => clearTimeout(to));
 }
 
 // 단건 조회 (공개)
