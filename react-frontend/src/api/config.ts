@@ -40,6 +40,14 @@ function resolveBase(): string {
     }
   } catch {}
 
+  // 네이티브 앱에서 명시된 베이스가 없다면(상대경로 상태) API 기본 도메인으로 폴백
+  try {
+    const isNative = (Capacitor as any)?.isNativePlatform?.() || false;
+    if (!base && isNative) {
+      base = "https://readandlead-api.onrender.com";
+    }
+  } catch {}
+
   return base;
 }
 
