@@ -35,8 +35,8 @@ const Main = styled.main<{ $native?: boolean }>`
     padding-top: ${(p) => (p.$native ? '0px' : '100px')};
   }
 
-  /* 네이티브 앱일 때는 사이드 레일 폭만큼 여백을 줌 (compact 56px) */
-  padding-left: ${(p) => (p.$native ? '56px' : '0px')};
+  /* 네이티브 앱일 때는 사이드 레일 폭만큼 여백을 줌 (접힘/펼침에 동기화) */
+  padding-left: ${(p) => (p.$native ? 'var(--rail-width, 56px)' : '0px')};
 `;
 
 export default function App() {
