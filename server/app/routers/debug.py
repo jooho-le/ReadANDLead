@@ -1,13 +1,12 @@
 from fastapi import APIRouter
-from fastapi.routing import APIRoute
 from typing import List
 import os
 
 router = APIRouter()
 
 
-@router.get("/diag")
-def diag(routes: List[APIRoute] = []):
+@router.get("/diag", response_model=None)
+def diag():
     # This route will be mounted with prefix /api/debug
     # Collect route paths from the global app via dependency injection fallback
     try:
@@ -43,4 +42,3 @@ def diag(routes: List[APIRoute] = []):
             "trips_summary": has("/api/trips/summary"),
         },
     }
-
