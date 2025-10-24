@@ -14,6 +14,7 @@ from .routers import uploads as uploads_router
 from .routers import tour as tour_router
 from .routers import agency_trips as agency_trips_router
 from .routers import places as places_router
+from .routers import debug as debug_router
 from fastapi.staticfiles import StaticFiles
 from fastapi import Response
 from .routers import trips as trips_router
@@ -157,6 +158,7 @@ def ping():
 
 app.include_router(trips_router.router, prefix="/api/trips", tags=["trips"])
 app.include_router(places_router.router, prefix="/api", tags=["places"])  # /api/places/upsert
+app.include_router(debug_router.router, prefix="/api/debug", tags=["debug"])  # /api/debug/diag
 
 # Root 안내: 기본 URL 접속 시 간단 안내를 반환
 @app.get("/")
