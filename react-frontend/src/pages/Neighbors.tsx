@@ -91,16 +91,11 @@ export default function Neighbors() {
 
         if (profile) setMyName(profile.display_name || profile.email || '');
 
-        // 2. 글 목록 불러오기
+        // 2. 글 목록 불러오기 (항상 전체 공개 목록)
         const r = await listNeighborSummaries();
         if (!alive) return;
 
-        // 3. 만약 마이페이지 "내가 쓴 글" 전용이라면 내 이름으로 필터링
-        const filtered = profile
-          ? r.filter((p) => p.author === (profile.display_name || profile.email))
-          : r;
-
-        setPosts(Array.isArray(filtered) ? filtered : []);
+        setPosts(Array.isArray(r) ? r : []);
         setError('');
       } catch (err) {
         if (!alive) return;
