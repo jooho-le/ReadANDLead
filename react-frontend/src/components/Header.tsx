@@ -11,7 +11,9 @@ import {
   FaUserFriends,
   FaFolderOpen,
   FaSignInAlt,
-  FaSignOutAlt
+  FaSignOutAlt,
+  FaChevronLeft,
+  FaChevronRight
 } from 'react-icons/fa';
 import type { IconType, IconBaseProps } from 'react-icons';
 import { createPortal } from 'react-dom';
@@ -37,10 +39,10 @@ const HeaderContainer = styled.header`
 `;
 
 /* 네이티브 앱(안드/아이폰)에서는 좌측 사이드 레일 레이아웃 */
-const Rail = styled.aside`
+const Rail = styled.aside<{ $open?: boolean }>`
   position: fixed;
   inset: 0 auto 0 0;
-  width: 72px;
+  width: 56px; /* was 72px: compact for native */
   background: #ffffffdd;
   backdrop-filter: blur(8px);
   border-right: 1px solid rgba(0,0,0,0.06);
@@ -48,19 +50,21 @@ const Rail = styled.aside`
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 10px 8px;
-  gap: 6px;
+  padding: 6px 6px;
+  gap: 4px;
+  transform: translateX(${(p) => (p.$open ? '0' : '-100%')});
+  transition: transform .18s ease;
 `;
 
 const RailLogo = styled(Link)`
   display: flex; align-items: center; justify-content: center;
-  width: 48px; height: 48px; border-radius: 12px;
+  width: 40px; height: 40px; border-radius: 10px;
   color: #667eea; text-decoration: none; font-weight: 800;
   border: 1px solid #e9e9f5; background: #f7f8ff;
 `;
 
 const RailBtn = styled(Link)<{ $active?: boolean }>`
-  width: 48px; height: 48px; border-radius: 12px;
+  width: 40px; height: 40px; border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
   color: ${(p) => (p.$active ? '#667eea' : '#666')};
   background: ${(p) => (p.$active ? 'rgba(102,126,234,0.12)' : 'transparent')};
@@ -70,8 +74,21 @@ const RailBtn = styled(Link)<{ $active?: boolean }>`
 
 const RailSpacer = styled.div` flex: 1 1 auto; `;
 const RailLogout = styled.button`
-  width: 48px; height: 36px; border-radius: 10px;
+  width: 40px; height: 32px; border-radius: 10px;
   border: 1px solid #eee; background: #fff; color:#555; font-weight:700;
+`;
+
+const RailToggle = styled.button<{ $open?: boolean }>`
+  position: fixed;
+  top: 10px;
+  left: ${(p) => (p.$open ? '60px' : '6px')};
+  z-index: 1002;
+  width: 28px; height: 28px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(0,0,0,.08);
+  display: flex; align-items: center; justify-content: center;
 `;
 
 const Nav = styled.nav`
@@ -342,6 +359,7 @@ export default function Header() {
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errMsg, setErrMsg] = useState('');
+  const [railOpen, setRailOpen] = useState(true);
 
   // CRA / Vite 둘 다 대응 (경고는 무시 가능)
   const API_URL = useMemo(
@@ -378,6 +396,13 @@ export default function Header() {
       ignore = true;
     };
   }, [token]);
+
+  // 네이티브 레일 열고닫기 → 본문 패딩을 CSS 변수로 동기화
+  useEffect(() => {
+    try {
+      document.documentElement.style.setProperty('--rail-width', railOpen ? '56px' : '0px');
+    } catch {}
+  }, [railOpen]);
 
   const navItems: NavItemDef[] = [
     { path: '/', label: '홈', icon: () => iconEl(FaHome) },
@@ -449,62 +474,68 @@ export default function Header() {
   // 네이티브 앱이면 좌측 레일을 렌더링 (웹은 기존 헤더 유지)
   if (isNative) {
     return (
-      <Rail>
-        <RailLogo to="/">{iconEl(FaBook)}</RailLogo>
-        {navItems.map((item) => (
-          <RailBtn
-            key={item.path}
-            to={item.path}
-            $active={location.pathname === item.path}
-            title={item.label}
-          >
-            {item.icon()}
-          </RailBtn>
-        ))}
-        <RailSpacer />
-        {!profile ? (
-          <RailBtn to="#" onClick={(e)=>{ e.preventDefault(); setMode('login'); setShowModal(true); }} title="로그인">
-            {iconEl(FaSignInAlt)}
-          </RailBtn>
-        ) : (
-          <RailLogout onClick={doLogout}>out</RailLogout>
-        )}
+      <>
+        <Rail $open={railOpen}>
+          <RailLogo to="/">{iconEl(FaBook)}</RailLogo>
+          {navItems.map((item) => (
+            <RailBtn
+              key={item.path}
+              to={item.path}
+              $active={location.pathname === item.path}
+              title={item.label}
+              onClick={() => setRailOpen(false)}
+            >
+              {item.icon()}
+            </RailBtn>
+          ))}
+          <RailSpacer />
+          {!profile ? (
+            <RailBtn to="#" onClick={(e)=>{ e.preventDefault(); setMode('login'); setShowModal(true); }} title="로그인">
+              {iconEl(FaSignInAlt)}
+            </RailBtn>
+          ) : (
+            <RailLogout onClick={doLogout}>{iconEl(FaSignOutAlt)}</RailLogout>
+          )}
 
-        {showModal && (
-          <Portal>
-            <Backdrop onClick={() => setShowModal(false)}>
-              <Modal onClick={(e) => e.stopPropagation()}>
-                <ModalTitle>{mode === 'login' ? '로그인' : '회원가입'}</ModalTitle>
-                <Row style={{ justifyContent: 'flex-start' }}>
-                  <Button type="button" $primary={mode==='login'} onClick={()=>setMode('login')}>로그인</Button>
-                  <Button type="button" $primary={mode==='register'} onClick={()=>setMode('register')}>가입하기</Button>
-                </Row>
-                <Form onSubmit={handleAuth}>
-                  <Label>
-                    이메일
-                    <Input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} required placeholder="you@example.com" />
-                  </Label>
-                  {mode==='register' && (
-                    <Label>
-                      표시 이름(선택)
-                      <Input value={displayName} onChange={(e)=>setDisplayName(e.target.value)} placeholder="프로필에 보일 이름" />
-                    </Label>
-                  )}
-                  <Label>
-                    비밀번호
-                    <Input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} required placeholder="••••••••" />
-                  </Label>
-                  {errMsg && <ErrorText>{errMsg}</ErrorText>}
-                  <Row>
-                    <Button type="button" onClick={()=>setShowModal(false)}>취소</Button>
-                    <Button type="submit" $primary disabled={submitting}>{submitting ? '처리중…' : (mode==='login' ? '로그인' : '가입하기')}</Button>
+          {showModal && (
+            <Portal>
+              <Backdrop onClick={() => setShowModal(false)}>
+                <Modal onClick={(e) => e.stopPropagation()}>
+                  <ModalTitle>{mode === 'login' ? '로그인' : '회원가입'}</ModalTitle>
+                  <Row style={{ justifyContent: 'flex-start' }}>
+                    <Button type="button" $primary={mode==='login'} onClick={()=>setMode('login')}>로그인</Button>
+                    <Button type="button" $primary={mode==='register'} onClick={()=>setMode('register')}>가입하기</Button>
                   </Row>
-                </Form>
-              </Modal>
-            </Backdrop>
-          </Portal>
-        )}
-      </Rail>
+                  <Form onSubmit={handleAuth}>
+                    <Label>
+                      이메일
+                      <Input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} required placeholder="you@example.com" />
+                    </Label>
+                    {mode==='register' && (
+                      <Label>
+                        표시 이름(선택)
+                        <Input value={displayName} onChange={(e)=>setDisplayName(e.target.value)} placeholder="프로필에 보일 이름" />
+                      </Label>
+                    )}
+                    <Label>
+                      비밀번호
+                      <Input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} required placeholder="••••••••" />
+                    </Label>
+                    {errMsg && <ErrorText>{errMsg}</ErrorText>}
+                    <Row>
+                      <Button type="button" onClick={()=>setShowModal(false)}>취소</Button>
+                      <Button type="submit" $primary disabled={submitting}>{submitting ? '처리중…' : (mode==='login' ? '로그인' : '가입하기')}</Button>
+                    </Row>
+                  </Form>
+                </Modal>
+              </Backdrop>
+            </Portal>
+          )}
+        </Rail>
+        <RailToggle $open={railOpen} onClick={() => setRailOpen(!railOpen)} aria-label={railOpen ? '사이드바 접기' : '사이드바 열기'}>
+          {railOpen ? iconEl(FaChevronLeft) : iconEl(FaChevronRight)}
+        </RailToggle>
+      </>
     );
   }
 
