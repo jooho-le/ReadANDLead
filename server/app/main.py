@@ -39,6 +39,14 @@ allow_all = os.getenv("ALLOW_ALL_ORIGINS", "").strip().lower() in {"1", "true", 
 
 allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()] if allowed_origins_env else []
 
+# Sensible defaults: allow common localhost origins if nothing configured
+if not allow_all and not allowed_origin_regex and not allowed_origins:
+    allowed_origins = [
+        "http://localhost",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
+
 cors_kwargs = dict(
     allow_credentials=True,
     allow_methods=["*"],
@@ -46,15 +54,30 @@ cors_kwargs = dict(
 )
 
 if allow_all:
-    # 와일드카드 사용 시 브라우저 정책상 credentials 를 허용할 수 없음
-    cors_kwargs.update(allow_origins=["*"], allow_credentials=False)
+    # With wildcard, browsers disallow credentials
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+        allow_credentials=False,
+    )
 elif allowed_origin_regex:
-    cors_kwargs.update(allow_origin_regex=allowed_origin_regex, allow_origins=[])
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origin_regex=allowed_origin_regex,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        allow_credentials=True,
+    )
 else:
-    # 명시된 오리진만 허용. 미설정 시 교차 출처는 모두 차단(동일 출처는 CORS 비대상)
-    cors_kwargs.update(allow_origins=allowed_origins)
-
-app.add_middleware(CORSMiddleware, **cors_kwargs)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allowed_origins,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        allow_credentials=True,
+    )
 
 # Optional: background prewarm of lightweight endpoints to mitigate cold starts
 @app.on_event("startup")
