@@ -107,6 +107,32 @@ def list_posts_summary(limit: int = 30, request: Request = None, response: Respo
     return rows
 
 
+@router.get("/mine", response_model=List[schemas.PostSummary])
+def list_my_posts(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user_required),
+):
+    """현재 로그인 사용자의 글 요약만 반환.
+    배포 환경에 따라 마이페이지가 안전하게 내 글만 볼 수 있도록 분리 제공.
+    """
+    posts = (
+        db.query(models.NeighborPost)
+        .options(
+            load_only(
+                models.NeighborPost.id,
+                models.NeighborPost.title,
+                models.NeighborPost.cover,
+                models.NeighborPost.created_at,
+            ),
+            joinedload(models.NeighborPost.author).load_only(models.User.display_name),
+        )
+        .filter(models.NeighborPost.user_id == current_user.id)
+        .order_by(models.NeighborPost.created_at.desc())
+        .all()
+    )
+    return [_post_to_summary(post) for post in posts]
+
+
 @router.get("/{post_id}", response_model=schemas.PostOut)
 def get_post(post_id: int, db: Session = Depends(get_db)):
     post = db.get(models.NeighborPost, post_id)
