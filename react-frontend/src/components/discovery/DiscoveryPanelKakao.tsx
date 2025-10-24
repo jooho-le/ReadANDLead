@@ -9,6 +9,7 @@ import {
 } from '../../api/kakao';
 import { fetchKopisPerformances } from '../../api/kopis';
 import { fetchCultureNearby } from '../../api/culture';
+import { fetchTourByKeyword } from '../../api/tour';
 import { useKakaoMarkers } from './useKakaoMarkers';
 import AutocompleteInput, { Suggestion } from '../common/AutocompleteInput';
 import {
@@ -337,7 +338,7 @@ function addDays(d: Date, n: number) {
 /* ======================== 메인 컴포넌트 ======================== */
 export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
   const [active, setActive] = useState<
-    'performance' | 'exhibition' | 'museum' | 'cafe' | 'hot' | null
+    'performance' | 'exhibition' | 'tour' | 'museum' | 'cafe' | 'hot' | null
   >(null);
   const [rows, setRows] = useState<RowItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -653,6 +654,29 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
     return out.length > 0;
   }
 
+  /* ---------- 관광지(TourAPI) ---------- */
+  async function loadTour() {
+    clearMarkers('tour');
+    const sido = await reverseSido(center);
+    const keyword = (sido || '여행').trim();
+    const r = await fetchTourByKeyword(keyword, { rows: 20 });
+    const items = (((r || {}).response || {}).body || {}).items || {};
+    const arr = Array.isArray(items.item) ? items.item : items.item ? [items.item] : [];
+    const out: PlaceItem[] = [];
+    for (const it of arr) {
+      const name = it.title || '관광지';
+      const addr = it.addr1 || '';
+      const x = it.mapx ? parseFloat(it.mapx) : NaN; // lon
+      const y = it.mapy ? parseFloat(it.mapy) : NaN; // lat
+      const loc = isFinite(x) && isFinite(y) ? { lat: y, lng: x } : undefined;
+      if (loc) addMarker('tour', loc, name, addr);
+      out.push({ kind: 'place', id: name + (addr || ''), name, addr, loc, type: 'hot' });
+    }
+    setRows(out);
+    return out.length > 0;
+  }
+
+
   /* ---------- 공연(KOPIS) ---------- */
   async function loadKopis() {
     clearMarkers('performance');
@@ -709,6 +733,8 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
         ok = await loadCulture();
       } else if (kind === 'performance') {
         ok = await loadKopis();
+      } else if (kind === 'tour') {
+        ok = await loadTour();
       }
       if (!ok) showEmptyDialog(kind);
     } catch (e) {
@@ -872,6 +898,9 @@ export default function DiscoveryPanelKakao({ map, center, origin }: Props) {
         </Chip>
         <Chip $active={active === 'exhibition'} onClick={() => onClick('exhibition')}>
           전시(문화포털)
+        </Chip>
+        <Chip $active={active === 'tour'} onClick={() => onClick('tour')}>
+          관광지(TourAPI)
         </Chip>
         <Chip $active={active === 'museum'} onClick={() => onClick('museum')}>
           박물관
